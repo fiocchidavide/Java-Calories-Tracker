@@ -1,26 +1,13 @@
 package it.unibo.application.controller;
 
-import java.util.Objects;
-import java.util.Scanner;
+import java.net.PasswordAuthentication;
 
-import it.unibo.application.model.Model;
-import it.unibo.application.view.View;
+public interface Controller {
+    //O1
+    Boolean userAsksRegistration(PasswordAuthentication user);
+    Boolean userAsksLogin(PasswordAuthentication credentials);
+    void userAsksLogout();
 
-public class Controller {
-
-    private boolean initialized;
-    private View view;
-    private Model model;
-
-    public Controller(){
-    }
-
-    public void init(View view, Model model) throws IllegalStateException {
-        if(initialized){
-            throw new IllegalStateException("Controller already initialized.");
-        }
-        this.view = Objects.requireNonNull(view);
-        this.model = Objects.requireNonNull(model);
-        this.view.show();
-    }
+    //O2
+    void userAddsFood(String name);
 }

@@ -7,16 +7,16 @@ import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 
 import it.unibo.application.App;
-import it.unibo.application.controller.Controller;
+import it.unibo.application.controller.ControllerImpl;
 
 public class View {
 
-    private final Controller controller;
+    private final ControllerImpl controller;
     public JFrame mainJFrame;
     public JMenuBar menu;
     public JPanel content;
 
-    public View(final Controller controller){
+    public View(final ControllerImpl controller){
         this.controller = controller;
         this.mainJFrame = new JFrame(App.TITLE);
         mainJFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
