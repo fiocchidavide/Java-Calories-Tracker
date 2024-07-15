@@ -9,4 +9,8 @@ public class Model {
     public Model(final Connection connection){
         this.connection = connection;
     }
+
+    public boolean isValid(String username, char[] password){
+        return true;
+    }
 }

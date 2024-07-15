@@ -12,10 +12,13 @@ public class ConnectionManager {
     private static final String password = "cadmio";
 
     public static Connection getConnection(){
+        return null;
+        /*
         try {
             return DriverManager.getConnection(URL, user, password);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+            */
     }
 }

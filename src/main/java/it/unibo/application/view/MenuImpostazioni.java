@@ -12,14 +12,14 @@ public class MenuImpostazioni extends MenuElement {
         this.add(logout());
     }
 
-    JMenuItem menuPrincipale(){
-        var m = new JMenuItem("Menu principale");
+    private JMenuItem menuPrincipale(){
+        JMenuItem m = new JMenuItem("Menu principale");
         m.addActionListener(a -> getView().visualizzaMenuPrincipale());
         return m;
     }
 
-    JMenuItem logout() {
-        var m = new JMenuItem("Logout");
+    private JMenuItem logout() {
+        JMenuItem m = new JMenuItem("Logout");
         m.addActionListener(a -> getController().utenteRichiedeLogout());
         return m;
     }
