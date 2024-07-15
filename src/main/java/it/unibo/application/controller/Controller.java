@@ -1,13 +1,27 @@
 package it.unibo.application.controller;
 
-import java.net.PasswordAuthentication;
+import it.unibo.application.model.Model;
+import it.unibo.application.view.View;
 
-public interface Controller {
-    //O1
-    Boolean userAsksRegistration(PasswordAuthentication user);
-    Boolean userAsksLogin(PasswordAuthentication credentials);
-    void userAsksLogout();
+public class Controller {
 
-    //O2
-    void userAddsFood(String name);
+    private final Model model;
+    private final View view;
+
+    public Controller(Model model, View view){
+        this.model = model;
+        this.view = view;
+    }
+
+    public void sistemaRichiedeLogin() {
+        view.richiediLogin();
+    }
+
+    public void utenteRichiedeAutenticazione(String username, char[] password) {
+        view.visualizzaMenuPrincipale();
+    }
+
+    public void utenteRichiedeLogout() {
+        view.richiediLogin();
+    }
 }
