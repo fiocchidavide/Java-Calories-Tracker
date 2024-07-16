@@ -13,13 +13,17 @@ public class MenuMisurazioni extends MenuElement {
 
     private JMenuItem aggiungiMisurazione() {
         JMenuItem m = new JMenuItem("Aggiungi misurazione");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> {
+            getView().richiediMisurazione();
+        });
         return m;
     }
 
     private JMenuItem visualizzaMisurazioni() {
         JMenuItem m = new JMenuItem("Visualizza misurazioni");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> {
+            getController().utenteRichiedeMisurazioni();
+        });
         return m;
     }
 }

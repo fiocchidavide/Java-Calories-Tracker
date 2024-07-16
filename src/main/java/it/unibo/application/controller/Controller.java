@@ -1,10 +1,13 @@
 package it.unibo.application.controller;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import it.unibo.application.dto.Alimento;
+import it.unibo.application.dto.Misurazione;
 import it.unibo.application.dto.Tag;
 import it.unibo.application.dto.Target;
 import it.unibo.application.model.Model;
@@ -81,5 +84,33 @@ public class Controller {
 
     public Optional<Integer> utenteRichiedeObbiettivo() {
         return model.leggiObbiettivo(utenteAttuale());
+    }
+
+    public void utenteRichiedeMisurazioni() {
+        view.visualizzaMisurazioni(model.leggiMisurazioni(utenteAttuale()));
+    }
+
+    public void utenteAggiungeMisurazione(LocalDate data, BigDecimal peso) {
+        if(model.aggiungiMisurazione(new Misurazione(utenteAttuale(), data, peso))){
+            view.displayMessage("Misurazione inserita correttamente.");
+        }else{
+            view.displayErrorMessage("Errore nell'inserimento della misurazione.");
+        }
+    }
+
+    public void utenteModificaMisurazione(Misurazione misurazione, BigDecimal nuovoPeso) {
+        if(model.modificaMisurazione(misurazione, nuovoPeso)){
+            view.displayMessage("Misurazione modificata correttamente.", () -> utenteRichiedeMisurazioni());
+        }else{
+            view.displayErrorMessage("Errore nella modifica della misurazione.");
+        }
+    }
+
+    public void utenteEliminaMisurazione(Misurazione misurazione) {
+        if(model.eliminaMisurazione(misurazione)){
+            view.displayMessage("Misurazione eliminata correttamente.", () -> utenteRichiedeMisurazioni());
+        }else{
+            view.displayErrorMessage("Errore nell'eliminazione della misurazione.");
+        }
     }
 }

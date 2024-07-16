@@ -1,12 +1,17 @@
 package it.unibo.application.model;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
+import it.unibo.application.dto.Misurazione;
 import it.unibo.application.dto.Target;
 
 public class Model {
@@ -127,6 +132,59 @@ public class Model {
                 s.setNull(1, Types.DECIMAL);
             }
             s.setString(2, username);
+            return s.executeUpdate() > 0;
+        } catch(SQLException e){
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public List<Misurazione> leggiMisurazioni(String username) {
+        final String LEGGI_MISURAZIONI = "SELECT Data, Peso FROM MISURAZIONE WHERE Username = ? ORDER BY Data DESC";
+        try (PreparedStatement s = connection.prepareStatement(LEGGI_MISURAZIONI)) {
+            s.setString(1, username);
+            ResultSet res = s.executeQuery();
+            List<Misurazione> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Misurazione(username, res.getDate(1).toLocalDate(), res.getBigDecimal(2)));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean aggiungiMisurazione(Misurazione m) {
+        final String AGGIUNGI_MISURAZIONE = "INSERT INTO MISURAZIONE (Data, Peso, Username) VALUES (?,?,?)";
+        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_MISURAZIONE)){
+            s.setDate(1, Date.valueOf(m.data()));
+            s.setBigDecimal(2, m.peso());
+            s.setString(3, m.username());
+            return s.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean modificaMisurazione(Misurazione m, BigDecimal nuovoPeso) {
+        final String MODIFICA_MISURAZIONE = "UPDATE MISURAZIONE SET Peso = ? WHERE Data = ? AND Username = ?";
+        try (PreparedStatement s = connection.prepareStatement(MODIFICA_MISURAZIONE)){
+            s.setBigDecimal(1, nuovoPeso);
+            s.setDate(2, Date.valueOf(m.data()));
+            s.setString(3, m.username());
+            return s.executeUpdate() > 0;
+        } catch(SQLException e){
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean eliminaMisurazione(Misurazione m){
+        final String ELIMINA_MISURAZIONE = "DELETE FROM MISURAZIONE WHERE Data = ? AND Username = ?";
+        try (PreparedStatement s = connection.prepareStatement(ELIMINA_MISURAZIONE)){
+            s.setDate(1, Date.valueOf(m.data()));
+            s.setString(2, m.username());
             return s.executeUpdate() > 0;
         } catch(SQLException e){
             System.err.println(e);
