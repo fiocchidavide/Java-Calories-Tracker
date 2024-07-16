@@ -17,8 +17,7 @@ public class MenuAlimenti extends MenuElement {
 
     private JMenuItem aggiungiCibo() {
         JMenuItem m = new JMenuItem("Aggiungi cibo");
-        m.addActionListener(a -> {
-        });
+        m.addActionListener(a -> getView().richiediCibo());
         return m;
     }
 

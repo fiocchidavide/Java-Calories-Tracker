@@ -16,6 +16,7 @@ public class MenuPreferiti extends MenuElement {
         m.addActionListener(a -> {});
         return m;
     }
+
     private JMenuItem visualizzaPreferiti() {
         JMenuItem m = new JMenuItem("Visualizza preferiti");
         m.addActionListener(a -> {});

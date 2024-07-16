@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -65,8 +66,16 @@ public class Utils {
         return label;
     }
 
-    public static JTable keyValueTable(List<Pair<String, String>> values) {
-        return new JTable(new AbstractTableModel() {
+    public static JScrollPane keyValueTable(List<Pair<String, String>> values) {
+        var table = new JTable(new AbstractTableModel() {
+            @Override
+            public String getColumnName(int column) {
+                if(column == 0){
+                    return "Attributo";
+                }else {
+                    return "Valore";
+                }
+            }
 
             @Override
             public int getRowCount() {
@@ -82,8 +91,8 @@ public class Utils {
             public Object getValueAt(int rowIndex, int columnIndex) {
                 return columnIndex == 0 ? values.get(rowIndex).getLeft() : values.get(rowIndex).getRight();
             }
-            
         });
+        return new JScrollPane(table);
     }
 
     public static String descrizioneOptional(Optional<?> o) {

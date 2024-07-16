@@ -29,7 +29,7 @@ public class MenuImpostazioni extends MenuElement {
 
     private JMenuItem targetAttuale() {
         JMenuItem m = new JMenuItem("Visualizza target valori nutrizionali");
-        m.addActionListener(a -> getView().visualizzaTarget());
+        m.addActionListener(a -> getController().utenteRichiedeTarget());
         return m;
     }
 
@@ -41,7 +41,7 @@ public class MenuImpostazioni extends MenuElement {
 
     private JMenuItem obbiettivoAttuale() {
         JMenuItem m = new JMenuItem("Obbiettivo attuale");
-        m.addActionListener(a -> getView().visualizzaObbiettivo());
+        m.addActionListener(a -> getController().utenteRichiedeObbiettivo());
         return m;
     }
 

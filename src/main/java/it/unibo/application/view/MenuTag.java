@@ -15,19 +15,19 @@ public class MenuTag extends MenuElement {
 
     private JMenuItem aggiungiTag() {
         JMenuItem m = new JMenuItem("Aggiungi tag");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getView().richiediTag());
         return m;
     }
 
     private JMenuItem visualizzaTag() {
         JMenuItem m = new JMenuItem("Visualizza tag");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteRichiedeTag());
         return m;
     }
 
     private JMenuItem tagUtente() {
         JMenuItem m = new JMenuItem("I tuoi tag");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteRichiedeSuoiTag());
         return m;
     }
 }

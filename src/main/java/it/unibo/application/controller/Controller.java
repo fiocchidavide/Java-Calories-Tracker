@@ -10,6 +10,7 @@ import it.unibo.application.dto.Alimento;
 import it.unibo.application.dto.Misurazione;
 import it.unibo.application.dto.Tag;
 import it.unibo.application.dto.Target;
+import it.unibo.application.dto.Cibo;
 import it.unibo.application.model.Model;
 import it.unibo.application.view.View;
 
@@ -62,8 +63,8 @@ public class Controller {
         }
     }
 
-    public Optional<Target> utenteRichiedeTarget() {
-        return model.leggiTarget(utenteAttuale());
+    public void utenteRichiedeTarget() {
+        view.visualizzaTarget(model.leggiTarget(utenteAttuale()));
     }
 
     public void utenteImpostaTarget(Optional<Target> target) {
@@ -82,8 +83,8 @@ public class Controller {
         }
     }
 
-    public Optional<Integer> utenteRichiedeObbiettivo() {
-        return model.leggiObbiettivo(utenteAttuale());
+    public void utenteRichiedeObbiettivo() {
+        view.visualizzaObbiettivo(model.leggiObbiettivo(utenteAttuale()));
     }
 
     public void utenteRichiedeMisurazioni() {
@@ -111,6 +112,40 @@ public class Controller {
             view.displayMessage("Misurazione eliminata correttamente.", () -> utenteRichiedeMisurazioni());
         }else{
             view.displayErrorMessage("Errore nell'eliminazione della misurazione.");
+        }
+    }
+
+    public void utenteRichiedeTag(){
+        view.visualizzaTag(model.leggiTag());
+    }
+
+    public void utenteAggiungeTag(String parolaChiave){
+        if(model.aggiungiTag(new Tag(parolaChiave, utenteAttuale()))){
+            view.displayMessage("Tag inserito correttamente.");
+        }else{
+            view.displayErrorMessage("Errore nell'inserimento dell tag.");
+        }
+    }
+
+    public void utenteRichiedeSuoiTag(){
+        view.visualizzaTagModificabili(model.leggiTag(utenteAttuale()));
+    }
+
+    public void utenteEliminaTag(Tag tag){
+        if(model.eliminaTag(tag)){
+            view.displayMessage("Tag eliminato correttamente.", () -> utenteRichiedeSuoiTag());
+        }else{
+            view.displayErrorMessage("Errore nell'eliminazione del tag.");
+        }
+    }
+
+    public void utenteAggiungeCibo(Cibo cibo){
+        if(model.aggiungiCibo(
+            new Alimento(-1, cibo.nome(), cibo.kcal(), cibo.carboidrati(), cibo.grassi(), cibo.proteine(), cibo.porzione(), 'C', cibo.brand(), utenteAttuale(), cibo.privato())
+        )){
+            view.displayMessage("Cibo inserito correttamente.", () -> view.visualizzaAlimentiUtente());
+        }else{
+            view.displayErrorMessage("Errore nell'inserimento del cibo.");
         }
     }
 }

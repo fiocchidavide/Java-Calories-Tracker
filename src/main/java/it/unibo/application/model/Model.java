@@ -11,7 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.swing.GroupLayout.Alignment;
+
+import it.unibo.application.commons.Utilities;
+import it.unibo.application.dto.Alimento;
 import it.unibo.application.dto.Misurazione;
+import it.unibo.application.dto.Tag;
 import it.unibo.application.dto.Target;
 
 public class Model {
@@ -73,18 +78,14 @@ public class Model {
                 int kcal = res.getInt(1);
                 return Optional.ofNullable(kcal > 0 ? new Target(
                         kcal,
-                        strictlyPositive(res.getInt(2)),
-                        strictlyPositive(res.getInt(3)),
-                        strictlyPositive(res.getInt(4)))
+                        Utilities.strictlyPositive(res.getInt(2)),
+                        Utilities.strictlyPositive(res.getInt(3)),
+                        Utilities.strictlyPositive(res.getInt(4)))
                         : null);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private Optional<Integer> strictlyPositive(int x) {
-        return Optional.ofNullable(x > 0 ? x : null);
     }
 
     public boolean impostaTarget(String username, Optional<Target> t) {
@@ -190,5 +191,62 @@ public class Model {
             System.err.println(e);
             return false;
         }
+    }
+
+    public List<Tag> leggiTag(){
+        final String LEGGI_TAG = "SELECT ParolaChiave, Creatore FROM TAG ORDER BY ParolaChiave";
+        try (PreparedStatement s = connection.prepareStatement(LEGGI_TAG)) {
+            ResultSet res = s.executeQuery();
+            List<Tag> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Tag(res.getString(1), res.getString(2)));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<Tag> leggiTag(String username){
+        final String LEGGI_TAG = "SELECT ParolaChiave, Creatore FROM TAG WHERE Creatore = ? ORDER BY ParolaChiave";
+        try (PreparedStatement s = connection.prepareStatement(LEGGI_TAG)) {
+            s.setString(1, username);
+            ResultSet res = s.executeQuery();
+            List<Tag> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Tag(res.getString(1), res.getString(2)));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean aggiungiTag(Tag tag){
+        final String AGGIUNGI_TAG = "INSERT INTO TAG (ParolaChiave, Creatore) VALUES (?,?)";
+        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_TAG)){
+            s.setString(1, tag.parolaChiave());
+            s.setString(2, tag.creatore());
+            return s.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean eliminaTag(Tag tag){
+        final String ELIMINA_TAG = "DELETE FROM TAG WHERE ParolaChiave = ? AND Creatore = ?";
+        try (PreparedStatement s = connection.prepareStatement(ELIMINA_TAG)){
+            s.setString(1, tag.parolaChiave());
+            s.setString(2, tag.creatore());
+            return s.executeUpdate() > 0;
+        } catch(SQLException e){
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean aggiungiCibo(Alimento cibo){
+        return false;
     }
 }
