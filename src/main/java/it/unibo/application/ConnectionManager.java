@@ -2,7 +2,6 @@ package it.unibo.application;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 
 public class ConnectionManager {
     private static final String dataBaseName = "mycalorietracker";
@@ -12,13 +11,10 @@ public class ConnectionManager {
     private static final String password = "cadmio";
 
     public static Connection getConnection(){
-        return null;
-        /*
         try {
             return DriverManager.getConnection(URL, user, password);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-            */
     }
 }

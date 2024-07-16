@@ -6,13 +6,18 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.table.AbstractTableModel;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 public class Utils {
     public static JPanel genericQuery(List<String> fieldLabels, String buttonLabel, Consumer<List<String>> consumer) {
@@ -58,5 +63,30 @@ public class Utils {
                     }
                 });
         return label;
+    }
+
+    public static JTable keyValueTable(List<Pair<String, String>> values) {
+        return new JTable(new AbstractTableModel() {
+
+            @Override
+            public int getRowCount() {
+                return values.size();
+            }
+
+            @Override
+            public int getColumnCount() {
+                return 2;
+            }
+
+            @Override
+            public Object getValueAt(int rowIndex, int columnIndex) {
+                return columnIndex == 0 ? values.get(rowIndex).getLeft() : values.get(rowIndex).getRight();
+            }
+            
+        });
+    }
+
+    public static String descrizioneOptional(Optional<?> o) {
+        return o.isPresent() ? o.get().toString() : "non impostato";
     }
 }

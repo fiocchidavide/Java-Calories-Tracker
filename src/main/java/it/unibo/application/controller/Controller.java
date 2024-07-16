@@ -6,6 +6,7 @@ import java.util.Set;
 
 import it.unibo.application.dto.Alimento;
 import it.unibo.application.dto.Tag;
+import it.unibo.application.dto.Target;
 import it.unibo.application.model.Model;
 import it.unibo.application.view.View;
 
@@ -28,8 +29,17 @@ public class Controller {
     public void utenteRichiedeAutenticazione(String username, char[] password) {
         if(model.isValid(username, password)){
             this.username = Optional.of(username);
+            view.visualizzaMenuPrincipale();
+        }else{
+            view.displayErrorMessage("Credenziali errate.");
         }
-        view.visualizzaMenuPrincipale();
+        
+    }
+
+    public void utenteRichiedeRegistrazione(String username, char[] password) {
+        if(model.registerUser(username, password)) {
+            view.displayMessage("Utente registrato, procedere al login.");
+        }
     }
 
     public void utenteRichiedeLogout() {
@@ -47,5 +57,29 @@ public class Controller {
         } else {
             throw new IllegalStateException("No user is logged in.");
         }
+    }
+
+    public Optional<Target> utenteRichiedeTarget() {
+        return model.leggiTarget(utenteAttuale());
+    }
+
+    public void utenteImpostaTarget(Optional<Target> target) {
+        if(model.impostaTarget(utenteAttuale(), target)){
+            view.displayMessage("Target impostato correttamente.");
+        }else{
+            view.displayErrorMessage("Target non valido.");
+        }
+    }
+
+    public void utenteImpostaObbiettivo(Optional<Integer> obbiettivo) {
+        if(model.impostaObbiettivo(utenteAttuale(), obbiettivo)){
+            view.displayMessage("Obbiettivo impostato correttamente.");
+        }else{
+            view.displayErrorMessage("Obbiettivo non valido.");
+        }
+    }
+
+    public Optional<Integer> utenteRichiedeObbiettivo() {
+        return model.leggiObbiettivo(utenteAttuale());
     }
 }

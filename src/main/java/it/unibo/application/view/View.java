@@ -86,12 +86,15 @@ public final class View {
             loginPrompt.add(usernameField);
             loginPrompt.add(new JLabel("Password:"));
             loginPrompt.add(passwordField);
-            loginPrompt.setBorder(defaultBorder());
             cp.add(loginPrompt, BorderLayout.CENTER);
-            cp.add(Utils.button("Login",
+            var buttons = new JPanel(new GridLayout(1, 2));
+            buttons.add(Utils.button("Login",
                     () -> getController().utenteRichiedeAutenticazione(usernameField.getText(),
-                            passwordField.getPassword())),
-                    BorderLayout.SOUTH);
+                    passwordField.getPassword())));
+            buttons.add(Utils.button("Registrazione",
+                    () -> getController().utenteRichiedeRegistrazione(usernameField.getText(),
+                    passwordField.getPassword())));
+            cp.add(buttons, BorderLayout.SOUTH);
         });
     }
 
@@ -112,7 +115,10 @@ public final class View {
     }
 
     public void displayErrorMessage(Object message) {
-        JOptionPane.showMessageDialog(mainFrame, message, "Errore", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(mainFrame, message, "", JOptionPane.ERROR_MESSAGE);
+    }
+    public void displayMessage(Object message) {
+        JOptionPane.showMessageDialog(mainFrame, message, "", JOptionPane.INFORMATION_MESSAGE);
     }
 
     public void visualizzaMenuPrincipale() {
@@ -125,7 +131,7 @@ public final class View {
         });
     }
 
-    void freshPane(Consumer<Container> consumer) {
+    public void freshPane(Consumer<Container> consumer) {
         var cp = this.mainFrame.getContentPane();
         cp.removeAll();
         consumer.accept(cp);

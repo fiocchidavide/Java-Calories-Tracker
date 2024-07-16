@@ -1,5 +1,4 @@
 package it.unibo.application.view;
-
 import javax.swing.JMenuItem;
 
 import it.unibo.application.controller.Controller;
