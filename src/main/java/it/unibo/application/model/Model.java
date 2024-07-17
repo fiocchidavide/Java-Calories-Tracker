@@ -246,7 +246,58 @@ public class Model {
         }
     }
 
-    public boolean aggiungiCibo(Alimento cibo){
-        return false;
+    public boolean aggiungiAlimento(Alimento cibo){
+        final String AGGIUNGI_CIBO = "INSERT INTO ALIMENTO(Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato) VALUES (?,?,?,?,?,?,?,?,?,?)";
+        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_CIBO)){
+            s.setString(1, cibo.nome());
+            s.setInt(2, cibo.kcal());
+            s.setInt(3, cibo.carboidrati());
+            s.setInt(4, cibo.grassi());
+            s.setInt(5, cibo.proteine());
+            if(cibo.porzione().isPresent()){
+                s.setInt(6, cibo.porzione().get());
+            }else{
+                s.setNull(6, Types.INTEGER);
+            }
+            s.setString(7, String.valueOf(cibo.tipo()));
+            if(cibo.brand().isPresent()){
+                s.setString(8, cibo.brand().get());
+            }else{
+                s.setNull(8, Types.VARCHAR);
+            }
+            s.setString(9, cibo.proprietario());
+            s.setInt(10, cibo.privato() ? 1 : 0);
+            return s.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public List<Alimento> visualizzaAlimenti(String username){
+        final String LEGGI_ALIMENTI = "SELECT CodAlimento, Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato FROM ALIMENTO WHERE Proprietario = ? ORDER BY CodAlimento DESC";
+        try (PreparedStatement s = connection.prepareStatement(LEGGI_ALIMENTI)) {
+            s.setString(1, username);
+            ResultSet res = s.executeQuery();
+            List<Alimento> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Alimento(
+                    res.getInt(1),
+                    res.getString(2),
+                    res.getInt(3),
+                    res.getInt(4),
+                    res.getInt(5),
+                    res.getInt(6),
+                    Optional.ofNullable(res.getObject(7, Integer.class)),
+                    res.getString(8).charAt(0),
+                    Optional.ofNullable(res.getObject(9, String.class)),
+                    res.getString(10),
+                    res.getBoolean(11)
+                ));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

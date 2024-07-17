@@ -6,11 +6,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
+import javax.swing.AbstractListModel;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -70,9 +75,9 @@ public class Utils {
         var table = new JTable(new AbstractTableModel() {
             @Override
             public String getColumnName(int column) {
-                if(column == 0){
+                if (column == 0) {
                     return "Attributo";
-                }else {
+                } else {
                     return "Valore";
                 }
             }
@@ -97,5 +102,56 @@ public class Utils {
 
     public static String descrizioneOptional(Optional<?> o) {
         return o.isPresent() ? o.get().toString() : "non impostato";
+    }
+
+    public static <T> JComponent objectsTable(List<T> objects, List<String> columns,
+            Function<T, Map<String, String>> translator, Consumer<T> onDoubleClick) {
+        JTable table = new JTable(new AbstractTableModel() {
+            @Override
+            public String getColumnName(int column) {
+                return columns.get(column);
+            }
+
+            @Override
+            public int getRowCount() {
+                return objects.size();
+            }
+
+            @Override
+            public int getColumnCount() {
+                return columns.size();
+            }
+
+            @Override
+            public Object getValueAt(int rowIndex, int columnIndex) {
+                return translator.apply(objects.get(rowIndex)).get(getColumnName(columnIndex));
+            }
+        });
+
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getClickCount() == 2 && table.getSelectedRow() >= 0){
+                    onDoubleClick.accept(objects.get(table.getSelectedRow()));
+                }
+            }
+        });
+
+        return new JScrollPane(table);
+    }
+
+    public static <T> JComponent objectsList(List<T> objects, Function<T,String> translator, Consumer<T> onDoubleClick){
+        JList<String> l = new JList<>(new AbstractListModel<>() {
+            @Override
+            public int getSize() {
+                return objects.size();
+            }
+
+            @Override
+            public String getElementAt(int index) {
+                return translator.apply(objects.get(index));
+            }
+        });
+        return new JScrollPane(l);
     }
 }

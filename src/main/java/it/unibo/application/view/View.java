@@ -5,8 +5,6 @@ import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.util.List;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.time.LocalDate;
@@ -15,26 +13,22 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.swing.AbstractListModel;
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
-import javax.swing.table.AbstractTableModel;
 import java.math.BigDecimal;
 
 import it.unibo.application.App;
 import it.unibo.application.commons.Utilities;
 import it.unibo.application.controller.Controller;
+import it.unibo.application.dto.Alimento;
 import it.unibo.application.dto.Cibo;
 import it.unibo.application.dto.Misurazione;
 import it.unibo.application.dto.Tag;
@@ -160,44 +154,11 @@ public final class View {
     }
 
     public void visualizzaMisurazioni(List<Misurazione> misurazioni) {
-        freshPane(cp -> {
-            var table = new JTable(new AbstractTableModel() {
-                @Override
-                public String getColumnName(int column) {
-                    if (column == 0) {
-                        return "Data";
-                    } else {
-                        return "Peso";
-                    }
-                }
-
-                @Override
-                public int getRowCount() {
-                    return misurazioni.size();
-                }
-
-                @Override
-                public int getColumnCount() {
-                    return 2;
-                }
-
-                @Override
-                public Object getValueAt(int rowIndex, int columnIndex) {
-                    return columnIndex == 0 ? misurazioni.get(rowIndex).data()
-                            : misurazioni.get(rowIndex).peso();
-                }
-            });
-            table.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (e.getClickCount() == 2 && table.getSelectedRow() >= 0
-                            && table.getSelectedRow() < misurazioni.size()) {
-                        dettaglioMisurazione(misurazioni.get(table.getSelectedRow()));
-                    }
-                }
-            });
-            cp.add(new JScrollPane(table));
-        });
+        var columns = List.of("Data", "Peso");
+        freshPane(cp -> cp.add(Utils.objectsTable(misurazioni,
+                columns,
+                m -> Utilities.mapFromLists(columns, Utilities.stringList(m.data(), m.peso())),
+                this::dettaglioMisurazione)));
     }
 
     public void richiediMisurazione() {
@@ -259,56 +220,15 @@ public final class View {
     }
 
     public void visualizzaTarget(Optional<Target> target) {
-        freshPane(cp -> {
-            cp.add(new JScrollPane(new JTable(new AbstractTableModel() {
-                @Override
-                public String getColumnName(int columnIndex) {
-                    switch (columnIndex) {
-                        case 0:
-                            return "Kcal";
-                        case 1:
-                            return "Proteine";
-                        case 2:
-                            return "Grassi";
-                        case 3:
-                            return "Carboidrati";
-                        default:
-                            return null;
-                    }
-                }
-
-                @Override
-                public int getRowCount() {
-                    return 1;
-                }
-
-                @Override
-                public int getColumnCount() {
-                    return 4;
-                }
-
-                @Override
-                public Object getValueAt(int rowIndex, int columnIndex) {
-                    if (target.isPresent()) {
-                        switch (columnIndex) {
-                            case 0:
-                                return target.get().kcal();
-                            case 1:
-                                return Utils.descrizioneOptional(target.get().percentualeProteine());
-                            case 2:
-                                return Utils.descrizioneOptional(target.get().percentualeGrassi());
-                            case 3:
-                                return Utils.descrizioneOptional(target.get().percentualeCarboidrati());
-                            default:
-                                return null;
-                        }
-                    } else {
-                        return "non impostato";
-                    }
-                }
-
-            })));
-        });
+        var columns = List.of("Kcal", "Proteine", "Grassi", "Carboidrati");
+        freshPane(cp -> cp.add(Utils.objectsTable(target.isPresent() ? List.of(target.get()) : List.of(),
+                columns,
+                t -> Utilities.mapFromLists(columns,
+                        Utilities.stringList(target.get().kcal(),
+                                Utils.descrizioneOptional(target.get().percentualeProteine()),
+                                Utils.descrizioneOptional(target.get().percentualeGrassi()),
+                                Utils.descrizioneOptional(target.get().percentualeCarboidrati()))),
+                t -> richiediTarget())));
     }
 
     public void richiediTarget() {
@@ -340,17 +260,8 @@ public final class View {
     }
 
     public void visualizzaTag(List<Tag> tag) {
-        freshPane(cp -> cp.add(new JScrollPane(new JList<>(new AbstractListModel<>() {
-            @Override
-            public int getSize() {
-                return tag.size();
-            }
-
-            @Override
-            public String getElementAt(int index) {
-                return tag.get(index).parolaChiave();
-            }
-        }))));
+        freshPane(cp -> cp.add(Utils.objectsList(tag, t -> t.parolaChiave(), t -> {
+        })));
     }
 
     public void richiediTag() {
@@ -362,28 +273,7 @@ public final class View {
     }
 
     public void visualizzaTagModificabili(List<Tag> tag) {
-        freshPane(cp -> {
-            JList<String> list = new JList<>(new AbstractListModel<>() {
-                @Override
-                public int getSize() {
-                    return tag.size();
-                }
-
-                @Override
-                public String getElementAt(int index) {
-                    return tag.get(index).parolaChiave();
-                }
-            });
-            list.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (e.getClickCount() == 2 && list.getSelectedIndex() >= 0) {
-                        dettaglioTag(tag.get(list.getSelectedIndex()));
-                    }
-                }
-            });
-            cp.add(new JScrollPane(list));
-        });
+        freshPane(cp -> cp.add(Utils.objectsList(tag, t -> t.parolaChiave(), this::dettaglioTag)));
     }
 
     public void dettaglioTag(Tag tag) {
@@ -400,16 +290,16 @@ public final class View {
             cp.add(checkbox, BorderLayout.NORTH);
             cp.add(Utils.genericQuery(List.of("Nome", "Kcal", "Carboidrati", "Grassi", "Proteine", "Porzione", "Brand"),
                     "Aggiungi", l -> {
-                        try{
+                        try {
                             getController().utenteAggiungeCibo(
-                                new Cibo(l.get(0),
-                                        Integer.parseInt(l.get(1)),
-                                        Integer.parseInt(l.get(2)),
-                                        Integer.parseInt(l.get(3)),
-                                        Integer.parseInt(l.get(4)),
-                                        Utilities.parseOptionalInt(l.get(5)),
-                                        Utilities.notBlank(l.get(6)),
-                                        checkbox.isSelected()));
+                                    new Cibo(l.get(0),
+                                            Integer.parseInt(l.get(1)),
+                                            Integer.parseInt(l.get(2)),
+                                            Integer.parseInt(l.get(3)),
+                                            Integer.parseInt(l.get(4)),
+                                            Utilities.parseOptionalInt(l.get(5)),
+                                            Utilities.notBlank(l.get(6)),
+                                            checkbox.isSelected()));
                         } catch (NumberFormatException e) {
                             displayErrorMessage("Inserisci dei valori nutrizionali corretti.");
                         }
@@ -417,7 +307,19 @@ public final class View {
         });
     }
 
-    public void visualizzaAlimentiUtente() {
+    public void visualizzaAlimentiUtente(List<Alimento> alimenti) {
+        List<String> columns = List.of("Nome", "Kcal", "Carboidrati", "Grassi", "Proteine", "Porzione", "Tipo", "Brand",
+                "Privato");
+        freshPane(cp -> cp.add(Utils.objectsTable(alimenti,
+                columns,
+                alimento -> Utilities.mapFromLists(columns,
+                        Utilities.stringList(alimento.nome(), alimento.kcal(), alimento.carboidrati(),
+                                alimento.grassi(), alimento.proteine(), Utils.descrizioneOptional(alimento.porzione()),
+                                alimento.tipo(), Utils.descrizioneOptional(alimento.brand()), alimento.privato())),
+                this::modificaAlimento)));
+    }
 
+    public void modificaAlimento(Alimento a) {
+        System.out.println("Alimento " + a.codAlimento());
     }
 }

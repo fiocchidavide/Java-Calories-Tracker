@@ -9,9 +9,8 @@ public class MenuAlimenti extends MenuElement {
     public MenuAlimenti(final View view, Controller controller) {
         super("Alimenti", view, controller);
         this.add(aggiungiCibo());
-        this.add(cibiUtente());
         this.add(creaRicetta());
-        this.add(ricetteUtente());
+        this.add(alimentiUtente());
         this.add(elencoAlimenti());
     }
 
@@ -21,22 +20,14 @@ public class MenuAlimenti extends MenuElement {
         return m;
     }
 
-    private JMenuItem cibiUtente() {
-        JMenuItem m = new JMenuItem("I tuoi cibi");
-        m.addActionListener(a -> {
-        });
+    private JMenuItem alimentiUtente() {
+        JMenuItem m = new JMenuItem("I tuoi alimenti");
+        m.addActionListener(a -> getController().utenteRichiedeSuoiAlimenti());
         return m;
     }
 
     private JMenuItem creaRicetta() {
         JMenuItem m = new JMenuItem("Crea ricetta");
-        m.addActionListener(a -> {
-        });
-        return m;
-    }
-
-    private JMenuItem ricetteUtente() {
-        JMenuItem m = new JMenuItem("Le tue ricette");
         m.addActionListener(a -> {
         });
         return m;

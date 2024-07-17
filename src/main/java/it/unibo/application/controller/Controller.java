@@ -140,12 +140,17 @@ public class Controller {
     }
 
     public void utenteAggiungeCibo(Cibo cibo){
-        if(model.aggiungiCibo(
+        System.out.println(cibo);
+        if(model.aggiungiAlimento(
             new Alimento(-1, cibo.nome(), cibo.kcal(), cibo.carboidrati(), cibo.grassi(), cibo.proteine(), cibo.porzione(), 'C', cibo.brand(), utenteAttuale(), cibo.privato())
         )){
-            view.displayMessage("Cibo inserito correttamente.", () -> view.visualizzaAlimentiUtente());
+            view.displayMessage("Cibo inserito correttamente.", () -> utenteRichiedeSuoiAlimenti());
         }else{
             view.displayErrorMessage("Errore nell'inserimento del cibo.");
         }
+    }
+
+    public void utenteRichiedeSuoiAlimenti(){
+        view.visualizzaAlimentiUtente(model.visualizzaAlimenti(utenteAttuale()));
     }
 }
