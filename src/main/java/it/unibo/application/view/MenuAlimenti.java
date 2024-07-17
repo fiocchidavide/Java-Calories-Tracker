@@ -16,7 +16,7 @@ public class MenuAlimenti extends MenuElement {
 
     private JMenuItem aggiungiCibo() {
         JMenuItem m = new JMenuItem("Aggiungi cibo");
-        m.addActionListener(a -> getView().richiediCibo());
+        m.addActionListener(a -> {});
         return m;
     }
 
@@ -28,15 +28,13 @@ public class MenuAlimenti extends MenuElement {
 
     private JMenuItem creaRicetta() {
         JMenuItem m = new JMenuItem("Crea ricetta");
-        m.addActionListener(a -> {
-        });
+        m.addActionListener(a -> {});
         return m;
     }
 
     private JMenuItem elencoAlimenti() {
         JMenuItem m = new JMenuItem("Elenco alimenti");
-        m.addActionListener(a -> {
-        });
+        m.addActionListener(a -> getController().utenteVuoleCercareAlimenti());
         return m;
     }
 }

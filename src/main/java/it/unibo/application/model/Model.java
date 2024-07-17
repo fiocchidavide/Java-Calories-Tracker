@@ -10,8 +10,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import javax.swing.GroupLayout.Alignment;
+import java.util.Set;
 
 import it.unibo.application.commons.Utilities;
 import it.unibo.application.dto.Alimento;
@@ -90,27 +89,27 @@ public class Model {
 
     public boolean impostaTarget(String username, Optional<Target> t) {
         final String IMPOSTA_TARGET = "UPDATE UTENTE SET Kcal = ?, PercentualeProteine = ?, PercentualeGrassi = ?, PercentualeCarboidrati = ? WHERE Username = ?";
-        try (PreparedStatement s = connection.prepareStatement(IMPOSTA_TARGET)){
+        try (PreparedStatement s = connection.prepareStatement(IMPOSTA_TARGET)) {
 
-            if (t.isEmpty()){
+            if (t.isEmpty()) {
                 s.setNull(1, Types.INTEGER);
                 s.setNull(2, Types.TINYINT);
                 s.setNull(3, Types.TINYINT);
                 s.setNull(4, Types.TINYINT);
-            }else{
+            } else {
                 var target = t.get();
                 s.setInt(1, target.kcal());
-                if(target.percentualeProteine().isPresent()){
+                if (target.percentualeProteine().isPresent()) {
                     s.setInt(2, target.percentualeProteine().get());
                 } else {
                     s.setNull(2, Types.TINYINT);
                 }
-                if(target.percentualeGrassi().isPresent()){
+                if (target.percentualeGrassi().isPresent()) {
                     s.setInt(3, target.percentualeGrassi().get());
                 } else {
                     s.setNull(3, Types.TINYINT);
                 }
-                if(target.percentualeCarboidrati().isPresent()){
+                if (target.percentualeCarboidrati().isPresent()) {
                     s.setInt(4, target.percentualeCarboidrati().get());
                 } else {
                     s.setNull(4, Types.TINYINT);
@@ -118,23 +117,23 @@ public class Model {
             }
             s.setString(5, username);
             return s.executeUpdate() > 0;
-        } catch(SQLException e){
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
     }
 
-    public boolean impostaObbiettivo(String username, Optional<Integer> obbiettivo){
+    public boolean impostaObbiettivo(String username, Optional<Integer> obbiettivo) {
         final String IMPOSTA_TARGET = "UPDATE UTENTE SET Obbiettivo = ? WHERE Username = ?";
-        try (PreparedStatement s = connection.prepareStatement(IMPOSTA_TARGET)){
-            if(obbiettivo.isPresent()){
+        try (PreparedStatement s = connection.prepareStatement(IMPOSTA_TARGET)) {
+            if (obbiettivo.isPresent()) {
                 s.setInt(1, obbiettivo.get());
             } else {
                 s.setNull(1, Types.DECIMAL);
             }
             s.setString(2, username);
             return s.executeUpdate() > 0;
-        } catch(SQLException e){
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
@@ -157,7 +156,7 @@ public class Model {
 
     public boolean aggiungiMisurazione(Misurazione m) {
         final String AGGIUNGI_MISURAZIONE = "INSERT INTO MISURAZIONE (Data, Peso, Username) VALUES (?,?,?)";
-        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_MISURAZIONE)){
+        try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_MISURAZIONE)) {
             s.setDate(1, Date.valueOf(m.data()));
             s.setBigDecimal(2, m.peso());
             s.setString(3, m.username());
@@ -170,30 +169,30 @@ public class Model {
 
     public boolean modificaMisurazione(Misurazione m, BigDecimal nuovoPeso) {
         final String MODIFICA_MISURAZIONE = "UPDATE MISURAZIONE SET Peso = ? WHERE Data = ? AND Username = ?";
-        try (PreparedStatement s = connection.prepareStatement(MODIFICA_MISURAZIONE)){
+        try (PreparedStatement s = connection.prepareStatement(MODIFICA_MISURAZIONE)) {
             s.setBigDecimal(1, nuovoPeso);
             s.setDate(2, Date.valueOf(m.data()));
             s.setString(3, m.username());
             return s.executeUpdate() > 0;
-        } catch(SQLException e){
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
     }
 
-    public boolean eliminaMisurazione(Misurazione m){
+    public boolean eliminaMisurazione(Misurazione m) {
         final String ELIMINA_MISURAZIONE = "DELETE FROM MISURAZIONE WHERE Data = ? AND Username = ?";
-        try (PreparedStatement s = connection.prepareStatement(ELIMINA_MISURAZIONE)){
+        try (PreparedStatement s = connection.prepareStatement(ELIMINA_MISURAZIONE)) {
             s.setDate(1, Date.valueOf(m.data()));
             s.setString(2, m.username());
             return s.executeUpdate() > 0;
-        } catch(SQLException e){
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
     }
 
-    public List<Tag> leggiTag(){
+    public List<Tag> leggiTag() {
         final String LEGGI_TAG = "SELECT ParolaChiave, Creatore FROM TAG ORDER BY ParolaChiave";
         try (PreparedStatement s = connection.prepareStatement(LEGGI_TAG)) {
             ResultSet res = s.executeQuery();
@@ -207,7 +206,7 @@ public class Model {
         }
     }
 
-    public List<Tag> leggiTag(String username){
+    public List<Tag> leggiTag(String username) {
         final String LEGGI_TAG = "SELECT ParolaChiave, Creatore FROM TAG WHERE Creatore = ? ORDER BY ParolaChiave";
         try (PreparedStatement s = connection.prepareStatement(LEGGI_TAG)) {
             s.setString(1, username);
@@ -222,9 +221,9 @@ public class Model {
         }
     }
 
-    public boolean aggiungiTag(Tag tag){
+    public boolean aggiungiTag(Tag tag) {
         final String AGGIUNGI_TAG = "INSERT INTO TAG (ParolaChiave, Creatore) VALUES (?,?)";
-        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_TAG)){
+        try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_TAG)) {
             s.setString(1, tag.parolaChiave());
             s.setString(2, tag.creatore());
             return s.executeUpdate() > 0;
@@ -234,35 +233,35 @@ public class Model {
         }
     }
 
-    public boolean eliminaTag(Tag tag){
+    public boolean eliminaTag(Tag tag) {
         final String ELIMINA_TAG = "DELETE FROM TAG WHERE ParolaChiave = ? AND Creatore = ?";
-        try (PreparedStatement s = connection.prepareStatement(ELIMINA_TAG)){
+        try (PreparedStatement s = connection.prepareStatement(ELIMINA_TAG)) {
             s.setString(1, tag.parolaChiave());
             s.setString(2, tag.creatore());
             return s.executeUpdate() > 0;
-        } catch(SQLException e){
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
     }
 
-    public boolean aggiungiAlimento(Alimento cibo){
+    public boolean aggiungiAlimento(Alimento cibo) {
         final String AGGIUNGI_CIBO = "INSERT INTO ALIMENTO(Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato) VALUES (?,?,?,?,?,?,?,?,?,?)";
-        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_CIBO)){
+        try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_CIBO)) {
             s.setString(1, cibo.nome());
             s.setInt(2, cibo.kcal());
             s.setInt(3, cibo.carboidrati());
             s.setInt(4, cibo.grassi());
             s.setInt(5, cibo.proteine());
-            if(cibo.porzione().isPresent()){
+            if (cibo.porzione().isPresent()) {
                 s.setInt(6, cibo.porzione().get());
-            }else{
+            } else {
                 s.setNull(6, Types.INTEGER);
             }
             s.setString(7, String.valueOf(cibo.tipo()));
-            if(cibo.brand().isPresent()){
+            if (cibo.brand().isPresent()) {
                 s.setString(8, cibo.brand().get());
-            }else{
+            } else {
                 s.setNull(8, Types.VARCHAR);
             }
             s.setString(9, cibo.proprietario());
@@ -274,7 +273,7 @@ public class Model {
         }
     }
 
-    public List<Alimento> visualizzaAlimenti(String username){
+    public List<Alimento> alimentiPropri(String username) {
         final String LEGGI_ALIMENTI = "SELECT CodAlimento, Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato FROM ALIMENTO WHERE Proprietario = ? ORDER BY CodAlimento DESC";
         try (PreparedStatement s = connection.prepareStatement(LEGGI_ALIMENTI)) {
             s.setString(1, username);
@@ -282,22 +281,158 @@ public class Model {
             List<Alimento> ret = new ArrayList<>();
             while (res.next()) {
                 ret.add(new Alimento(
-                    res.getInt(1),
-                    res.getString(2),
-                    res.getInt(3),
-                    res.getInt(4),
-                    res.getInt(5),
-                    res.getInt(6),
-                    Optional.ofNullable(res.getObject(7, Integer.class)),
-                    res.getString(8).charAt(0),
-                    Optional.ofNullable(res.getObject(9, String.class)),
-                    res.getString(10),
-                    res.getBoolean(11)
-                ));
+                        res.getInt(1),
+                        res.getString(2),
+                        res.getInt(3),
+                        res.getInt(4),
+                        res.getInt(5),
+                        res.getInt(6),
+                        Optional.ofNullable(res.getObject(7, Integer.class)),
+                        res.getString(8).charAt(0),
+                        Optional.ofNullable(res.getObject(9, String.class)),
+                        res.getString(10),
+                        res.getBoolean(11)));
             }
             return ret;
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public List<Alimento> cercaAlimenti(String username, Optional<String> search, Optional<Set<Tag>> tags) {
+        StringBuilder b = new StringBuilder();
+        tags.ifPresentOrElse(t -> {
+            b.append(
+                    """
+                            WITH ALIMENTI_VALIDI AS (
+                            SELECT DISTINCT CodAlimento
+                            FROM ASSOCIAZIONE
+                            WHERE ParolaChiave IN (
+                            """);
+            b.append("?,".repeat(tags.get().size() - 1));
+            b.append("?))");
+        }, () -> b.append("""
+                WITH ALIMENTI_VALIDI AS
+                (SELECT DISTINCT CodAlimento
+                FROM ALIMENTO)
+                """));
+
+        b.append(
+                """
+                        SELECT ALIMENTO.CodAlimento, Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato
+                        FROM ALIMENTI_VALIDI JOIN ALIMENTO ON ALIMENTI_VALIDI.CodAlimento = ALIMENTO.CodAlimento
+                        WHERE (Proprietario = ? OR Privato = 0)
+                        """);
+
+        search.ifPresent(s -> b.append(
+                """
+                        AND Nome LIKE ?
+                                """));
+        b.append("""
+                        ORDER BY CASE
+                            WHEN Proprietario = ? THEN 0
+                            ELSE 1
+                        END,
+                        Nome
+                """);
+
+        final String FILTRA_ALIMENTI = b.toString();
+
+        try (PreparedStatement s = connection.prepareStatement(FILTRA_ALIMENTI)) {
+            int i = 1;
+
+            if (tags.isPresent()) {
+                for (Tag tag : tags.get()) {
+                    s.setString(i++, tag.parolaChiave());
+                }
+            }
+            s.setString(i++, username);
+            if (search.isPresent()) {
+                s.setString(i++, "%" + search.get() + "%");
+            }
+            s.setString(i++, username);
+            ResultSet res = s.executeQuery();
+
+            List<Alimento> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Alimento(
+                        res.getInt(1),
+                        res.getString(2),
+                        res.getInt(3),
+                        res.getInt(4),
+                        res.getInt(5),
+                        res.getInt(6),
+                        Optional.ofNullable(res.getObject(7, Integer.class)),
+                        res.getString(8).charAt(0),
+                        Optional.ofNullable(res.getObject(9, String.class)),
+                        res.getString(10),
+                        res.getBoolean(11)));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean aggiungiPreferito(String username, Alimento preferito) {
+        final String AGGIUNGI_PREFERITO = """
+                INSERT INTO PREFERENZA (Username, CodAlimento)
+                VALUES (?, ?)
+                """;
+        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_PREFERITO)){
+            s.setString(1, username);
+            s.setInt(2, preferito.codAlimento());
+            return s.executeUpdate() > 0;
+        }catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public List<Alimento> leggiPreferiti(String username) {
+        final String LEGGI_PREFERITI = """
+                SELECT a.CodAlimento, Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato
+                FROM PREFERENZA p
+                JOIN ALIMENTO a ON p.CodAlimento = a.CodAlimento
+                WHERE Username = ?;
+                """;
+        try (PreparedStatement s = connection.prepareStatement(LEGGI_PREFERITI)) {
+            s.setString(1, username);
+            ResultSet res = s.executeQuery();
+            List<Alimento> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Alimento(
+                        res.getInt(1),
+                        res.getString(2),
+                        res.getInt(3),
+                        res.getInt(4),
+                        res.getInt(5),
+                        res.getInt(6),
+                        Optional.ofNullable(res.getObject(7, Integer.class)),
+                        res.getString(8).charAt(0),
+                        Optional.ofNullable(res.getObject(9, String.class)),
+                        res.getString(10),
+                        res.getBoolean(11)));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean eliminaPreferito(String username, Alimento preferito) {
+        final String RIMUOVI_PREFERITO = """
+                DELETE FROM PREFERENZA 
+                WHERE Username = ?
+                AND CodAlimento = ?
+                """;
+        try(PreparedStatement s = connection.prepareStatement(RIMUOVI_PREFERITO)){
+            s.setString(1, username);
+            s.setInt(2, preferito.codAlimento());
+            return s.executeUpdate() > 0;
+        }catch (SQLException e) {
+            System.err.println(e);
+            return false;
         }
     }
 }

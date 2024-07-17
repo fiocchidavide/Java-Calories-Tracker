@@ -13,13 +13,13 @@ public class MenuPreferiti extends MenuElement {
 
     private JMenuItem aggiungiPreferito() {
         JMenuItem m = new JMenuItem("Aggiungi preferito");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleAggiungerePreferito());
         return m;
     }
 
     private JMenuItem visualizzaPreferiti() {
         JMenuItem m = new JMenuItem("Visualizza preferiti");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteRichiedePreferiti());
         return m;
     }
 }

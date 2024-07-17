@@ -2,7 +2,7 @@ package it.unibo.application.dto;
 
 import java.util.Optional;
 
-public record Cibo(
+public record ValoriAlimento(
     String nome,
     int kcal,
     int carboidrati,

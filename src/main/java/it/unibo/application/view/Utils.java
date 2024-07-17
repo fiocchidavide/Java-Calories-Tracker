@@ -1,10 +1,12 @@
 package it.unibo.application.view;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,12 +22,16 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
-import org.apache.commons.lang3.tuple.Pair;
+import it.unibo.application.commons.Utilities;
 
 public class Utils {
+
+    public final static int TEXTFIELD_MIN_WIDTH = 10;
+
     public static JPanel genericQuery(List<String> fieldLabels, String buttonLabel, Consumer<List<String>> consumer) {
         JPanel fieldsPanel = new JPanel(new GridLayout(fieldLabels.size() * 2, 1));
         List<JTextField> fields = new ArrayList<>();
@@ -55,49 +61,6 @@ public class Utils {
             });
         });
         return button;
-    }
-
-    public static JLabel clickableLabel(String labelText, Runnable action) {
-        var label = new JLabel(labelText);
-        label.addMouseListener(
-                new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        SwingUtilities.invokeLater(() -> {
-                            action.run();
-                        });
-                    }
-                });
-        return label;
-    }
-
-    public static JScrollPane keyValueTable(List<Pair<String, String>> values) {
-        var table = new JTable(new AbstractTableModel() {
-            @Override
-            public String getColumnName(int column) {
-                if (column == 0) {
-                    return "Attributo";
-                } else {
-                    return "Valore";
-                }
-            }
-
-            @Override
-            public int getRowCount() {
-                return values.size();
-            }
-
-            @Override
-            public int getColumnCount() {
-                return 2;
-            }
-
-            @Override
-            public Object getValueAt(int rowIndex, int columnIndex) {
-                return columnIndex == 0 ? values.get(rowIndex).getLeft() : values.get(rowIndex).getRight();
-            }
-        });
-        return new JScrollPane(table);
     }
 
     public static String descrizioneOptional(Optional<?> o) {
@@ -131,7 +94,7 @@ public class Utils {
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(e.getClickCount() == 2 && table.getSelectedRow() >= 0){
+                if (e.getClickCount() == 2 && table.getSelectedRow() >= 0) {
                     onDoubleClick.accept(objects.get(table.getSelectedRow()));
                 }
             }
@@ -140,7 +103,8 @@ public class Utils {
         return new JScrollPane(table);
     }
 
-    public static <T> JComponent objectsList(List<T> objects, Function<T,String> translator, Consumer<T> onDoubleClick){
+    public static <T> JComponent objectsList(List<T> objects, Function<T, String> translator,
+            Consumer<T> onDoubleClick) {
         JList<String> l = new JList<>(new AbstractListModel<>() {
             @Override
             public int getSize() {
@@ -153,5 +117,138 @@ public class Utils {
             }
         });
         return new JScrollPane(l);
+    }
+
+    public static <T> JComponent singleObjectSelector(final List<T> objects, final List<String> columns,
+            final Function<T, Map<String, String>> translator, final String searchColumn, final Consumer<T> onSelection,
+            final String buttonLabel) {
+        var model = new AbstractTableModel() {
+
+            List<T> filtered = objects;
+
+            @Override
+            public String getColumnName(int column) {
+                return columns.get(column);
+            }
+
+            @Override
+            public int getRowCount() {
+                return filtered.size();
+            }
+
+            @Override
+            public int getColumnCount() {
+                return columns.size();
+            }
+
+            @Override
+            public Object getValueAt(int rowIndex, int columnIndex) {
+                return translator.apply(filtered.get(rowIndex)).get(getColumnName(columnIndex));
+            }
+
+            public void filter(Optional<String> filter) {
+                filter.ifPresentOrElse(string -> {
+                    filtered = objects.stream().filter(t -> translator.apply(t).get(searchColumn).contains(string))
+                            .toList();
+                },
+                        () -> {
+                            filtered = objects;
+                        });
+                this.fireTableDataChanged();
+            }
+
+            public T getObjectAt(int index) {
+                return filtered.get(index);
+            }
+        };
+
+        JTable table = new JTable(model);
+        table.setRowSelectionAllowed(true);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        var searchBar = new JTextField(20);
+        var searchButton = button("Filtra", () -> model.filter(Utilities.notBlank(searchBar.getText())));
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JPanel searchPanel = new JPanel(new FlowLayout());
+        searchPanel.add(searchBar);
+        searchPanel.add(searchButton);
+
+        JPanel southPanel = new JPanel(new GridLayout(2, 1));
+        southPanel.add(searchPanel);
+        southPanel.add(Utils.button(buttonLabel, () -> {
+            if (table.getSelectedRow() >= 0) {
+                onSelection.accept(model.getObjectAt(table.getSelectedRow()));
+            }
+        }));
+
+        panel.add(southPanel, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    public static <T> JComponent multipleObjectSelector(final List<T> objects, final List<String> columns,
+            final Function<T, Map<String, String>> translator, final String searchColumn, final Consumer<List<T>> onSelection,
+            final String buttonLabel) {
+        var model = new AbstractTableModel() {
+
+            List<T> filtered = objects;
+
+            @Override
+            public String getColumnName(int column) {
+                return columns.get(column);
+            }
+
+            @Override
+            public int getRowCount() {
+                return filtered.size();
+            }
+
+            @Override
+            public int getColumnCount() {
+                return columns.size();
+            }
+
+            @Override
+            public Object getValueAt(int rowIndex, int columnIndex) {
+                return translator.apply(filtered.get(rowIndex)).get(getColumnName(columnIndex));
+            }
+
+            public void filter(Optional<String> filter) {
+                filter.ifPresentOrElse(string -> {
+                    filtered = objects.stream().filter(t -> translator.apply(t).get(searchColumn).contains(string))
+                            .toList();
+                },
+                        () -> {
+                            filtered = objects;
+                        });
+                this.fireTableDataChanged();
+            }
+
+            public T getObjectAt(int index) {
+                return filtered.get(index);
+            }
+        };
+
+        JTable table = new JTable(model);
+        table.setRowSelectionAllowed(true);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        var searchBar = new JTextField(20);
+        var searchButton = button("Filtra", () -> model.filter(Utilities.notBlank(searchBar.getText())));
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JPanel searchPanel = new JPanel(new FlowLayout());
+        searchPanel.add(searchBar);
+        searchPanel.add(searchButton);
+
+        JPanel southPanel = new JPanel(new GridLayout(2, 1));
+        southPanel.add(searchPanel);
+        southPanel.add(Utils.button(buttonLabel, () -> onSelection.accept(Arrays.stream(table.getSelectedRows()).mapToObj(i -> model.getObjectAt(i)).toList())));
+
+        panel.add(southPanel, BorderLayout.SOUTH);
+        return panel;
     }
 }

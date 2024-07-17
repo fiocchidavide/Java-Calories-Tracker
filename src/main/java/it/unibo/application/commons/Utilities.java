@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 public class Utilities {
@@ -29,5 +30,11 @@ public class Utilities {
     }
     public static List<String> stringList(Object... args){
         return Arrays.stream(args).map(o -> String.valueOf(o)).toList();
-    }    
+    }
+    public static <T> Optional<List<T>> notEmpty(List<T> l){
+        return Optional.ofNullable(l.isEmpty() ? null : l);
+    }
+    public static <T> Optional<Set<T>> notEmpty(Set<T> l){
+        return Optional.ofNullable(l.isEmpty() ? null : l);
+    }        
 }
