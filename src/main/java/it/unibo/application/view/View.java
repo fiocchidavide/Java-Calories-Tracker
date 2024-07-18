@@ -4,13 +4,17 @@ import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.Dialog.ModalityType;
-import java.util.HashSet;
-import java.util.List;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -19,28 +23,31 @@ import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.border.Border;
+import javax.swing.table.AbstractTableModel;
 
 import org.apache.commons.lang3.tuple.Pair;
-
-import java.math.BigDecimal;
 
 import it.unibo.application.App;
 import it.unibo.application.commons.Utilities;
 import it.unibo.application.controller.Controller;
 import it.unibo.application.dto.Alimento;
-import it.unibo.application.dto.ValoriAlimento;
+import it.unibo.application.dto.Consumazione;
 import it.unibo.application.dto.Misurazione;
 import it.unibo.application.dto.Tag;
 import it.unibo.application.dto.Target;
+import it.unibo.application.dto.ValoriCibo;
+import it.unibo.application.dto.ValoriRicetta;
 
 public final class View {
 
@@ -104,12 +111,13 @@ public final class View {
             loginPrompt.add(passwordField);
             cp.add(loginPrompt, BorderLayout.CENTER);
             var buttons = new JPanel(new GridLayout(1, 2));
-            buttons.add(Utils.button("Login",
+            buttons.add(Components.button("Login",
                     () -> getController().utenteRichiedeAutenticazione(usernameField.getText(),
                             passwordField.getPassword())));
-            buttons.add(Utils.button("Registrazione",
+            buttons.add(Components.button("Registrazione",
                     () -> getController().utenteRichiedeRegistrazione(usernameField.getText(),
                             passwordField.getPassword())));
+            buttons.setBorder(defaultBorder());
             cp.add(buttons, BorderLayout.SOUTH);
         });
     }
@@ -154,23 +162,23 @@ public final class View {
         this.mainFrame.getJMenuBar().setVisible(true);
         this.freshPane(cp -> {
             var p = new JPanel(new FlowLayout());
-            p.add(new JLabel("<html>Ciao, " + getController().utenteAttuale()
-                    + "!<br/>Scegli una voce del menù per inziare.</html>"));
+            p.add(new JLabel("Scegli una voce del menù per inziare."));
             cp.add(p);
         });
     }
 
     public void visualizzaMisurazioni(List<Misurazione> misurazioni) {
         var columns = List.of("Data", "Peso");
-        freshPane(cp -> cp.add(Utils.objectsTable(misurazioni,
+        freshPane(cp -> cp.add(Components.clickableObjectsTable(misurazioni,
                 columns,
+                "Data",
                 m -> Utilities.mapFromLists(columns, Utilities.stringList(m.data(), m.peso())),
                 this::dettaglioMisurazione)));
     }
 
     public void richiediMisurazione() {
         freshPane(cp -> {
-            cp.add(Utils.genericQuery(List.of("Data [YYYY-MM-DD]", "Peso"), "Inserisci",
+            cp.add(Components.genericQuery(List.of("Data [YYYY-MM-DD]", "Peso"), "Inserisci",
                     l -> {
                         try {
                             getController().utenteAggiungeMisurazione(LocalDate.parse(l.get(0)),
@@ -189,7 +197,7 @@ public final class View {
             var peso = new JTextField(m.peso().toString());
             cp.add(peso, BorderLayout.CENTER);
             var pulsanti = new JPanel(new GridLayout(1, 2));
-            var modifica = Utils.button("Modifica", () -> {
+            var modifica = Components.button("Modifica", () -> {
                 try {
                     getController().utenteModificaMisurazione(m, new BigDecimal(peso.getText()));
                 } catch (NumberFormatException e) {
@@ -197,7 +205,7 @@ public final class View {
                     });
                 }
             });
-            var elimina = Utils.button("Elimina", () -> getController().utenteEliminaMisurazione(m));
+            var elimina = Components.button("Elimina", () -> getController().utenteEliminaMisurazione(m));
             pulsanti.add(modifica);
             pulsanti.add(elimina);
             cp.add(pulsanti, BorderLayout.SOUTH);
@@ -206,13 +214,13 @@ public final class View {
 
     public void visualizzaObbiettivo(Optional<Integer> obbiettivo) {
         freshPane(cp -> {
-            cp.add(new JLabel("Obbiettivo di peso corporeo: " + Utils.descrizioneOptional(obbiettivo)));
+            cp.add(new JLabel("Obbiettivo di peso corporeo: " + Components.descrizioneOptional(obbiettivo) + "kg"));
         });
     }
 
     public void richiediObbiettivo() {
         freshPane(cp -> {
-            cp.add(Utils.genericQuery(
+            cp.add(Components.genericQuery(
                     List.of("Obbiettivo"),
                     "Imposta",
                     l -> {
@@ -229,20 +237,67 @@ public final class View {
     }
 
     public void visualizzaTarget(Optional<Target> target) {
-        var columns = List.of("Kcal", "Proteine", "Grassi", "Carboidrati");
-        freshPane(cp -> cp.add(Utils.objectsTable(target.isPresent() ? List.of(target.get()) : List.of(),
-                columns,
-                t -> Utilities.mapFromLists(columns,
-                        Utilities.stringList(target.get().kcal(),
-                                Utils.descrizioneOptional(target.get().percentualeProteine()),
-                                Utils.descrizioneOptional(target.get().percentualeGrassi()),
-                                Utils.descrizioneOptional(target.get().percentualeCarboidrati()))),
-                t -> richiediTarget())));
+        freshPane(cp -> {
+            var model = new AbstractTableModel() {
+
+                @Override
+                public String getColumnName(int columnIndex) {
+                    switch (columnIndex) {
+                        case 0:
+                            return "Kcal";
+                        case 1:
+                            return "Percentuale proteine";
+                        case 2:
+                            return "Percentuale grassi";
+                        case 3:
+                            return "Percentuale carboidrati";
+                        default:
+                            return null;
+                    }
+                }
+
+                @Override
+                public int getRowCount() {
+                    return 1;
+                }
+
+                @Override
+                public int getColumnCount() {
+                    return 4;
+                }
+
+                @Override
+                public Object getValueAt(int rowIndex, int columnIndex) {
+                    if (rowIndex == 0) {
+                        switch (columnIndex) {
+                            case 0:
+                                return Components.descrizioneOptional(target.map(t -> t.kcal()));
+                            case 1:
+                                return Components.descrizioneOptional(
+                                        target.isPresent() ? target.get().percentualeProteine() : Optional.empty());
+                            case 2:
+                                return Components.descrizioneOptional(
+                                        target.isPresent() ? target.get().percentualeGrassi() : Optional.empty());
+                            case 3:
+                                return Components.descrizioneOptional(
+                                        target.isPresent() ? target.get().percentualeCarboidrati() : Optional.empty());
+                        }
+                    }
+                    return null;
+                }
+
+            };
+
+            var table = new JTable(model);
+            table.setRowSelectionAllowed(false);
+
+            cp.add(new JScrollPane(table));
+        });
     }
 
     public void richiediTarget() {
         freshPane(cp -> {
-            cp.add(Utils.genericQuery(
+            cp.add(Components.genericQuery(
                     List.of("Kcal", "Percentuale proteine", "Percentuale grassi", "Percentuale carboidrati"),
                     "Imposta",
                     l -> {
@@ -269,34 +324,34 @@ public final class View {
         });
     }
 
-    public void visualizzaTag(List<Tag> tag) {
-        freshPane(cp -> cp.add(Utils.objectsList(tag, t -> t.parolaChiave(), t -> {
-        })));
+    public void visualizzaTag(List<Tag> tag, Consumer<Tag> onDoubleClick) {
+        var columns = List.of("Parola chiave");
+        freshPane(cp -> cp.add(Components.clickableObjectsTable(tag, columns,
+                "Parola chiave",
+                t -> Utilities.mapFromLists(columns, Utilities.stringList(t.parolaChiave())),
+                onDoubleClick)));
     }
 
     public void richiediTag() {
         freshPane(cp -> {
-            cp.add(Utils.genericQuery(List.of("Parola chiave"), "Aggiungi", l -> {
+            cp.add(Components.genericQuery(List.of("Parola chiave"), "Aggiungi", l -> {
                 getController().utenteAggiungeTag(l.get(0));
             }));
         });
     }
 
-    public void visualizzaTagModificabili(List<Tag> tag) {
-        freshPane(cp -> cp.add(Utils.objectsList(tag, t -> t.parolaChiave(), this::dettaglioTag)));
-    }
-
     public void dettaglioTag(Tag tag) {
         freshPane(cp -> {
-            cp.add(new JLabel(tag.parolaChiave()), BorderLayout.CENTER);
-            cp.add(Utils.button("Elimina", () -> getController().utenteEliminaTag(tag)), BorderLayout.SOUTH);
+            var label = new JLabel(tag.parolaChiave());
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setBorder(defaultBorder());
+            cp.add(label, BorderLayout.CENTER);
+            cp.add(Components.button("Elimina", () -> getController().utenteEliminaTag(tag)), BorderLayout.SOUTH);
         });
     }
 
-    public void richiediValoriAlimento(Consumer<ValoriAlimento> accettore) {
-        freshPane(cp -> {
-            inserisiValoriAlimento(accettore);
-        });
+    public void richiediValoriCibo(Consumer<ValoriCibo> accettore) {
+        freshPane(cp -> cp.add(editorValoriCibo(Optional.empty(), accettore, "Aggiungi", true)));
     }
 
     public void dettaglioAlimento(Alimento a, boolean modificabile) {
@@ -312,13 +367,81 @@ public final class View {
     }
 
     public void elencaAlimenti(List<Alimento> a) {
-        freshPane(cp -> cp.add(elencoAlimenti(a, alimento -> {
-        })));
+        freshPane(cp -> cp.add(elencoAlimenti(a, alimento -> getController().utenteRichiedeDettaglio(alimento))));
+    }
+
+    public void mostraDettaglio(Alimento a, boolean modificabile) {
+        if (a.tipo() == 'C') {
+            dettaglioCibo(a, modificabile);
+        } else {
+            dettaglioRicetta(a, modificabile);
+        }
+    }
+
+    public void visualizzaConsumazioni(List<Consumazione> consumazioni, Consumer<Consumazione> onDoubleClick) {
+        var columns = List.of("Numero", "Data", "Ora", "CodAlimento", "Quantità");
+        freshPane(cp -> cp.add(Components.clickableObjectsTable(consumazioni,
+                columns,
+                "Data",
+                consumazione -> Utilities.mapFromLists(columns,
+                        Utilities.stringList(consumazione.numero(), consumazione.data(), consumazione.ora(),
+                                consumazione.codAlimento(), consumazione.quantità())),
+                onDoubleClick)));
+    }
+
+    public void richiediConsumazione(int codAlimento, Consumer<Consumazione> accettore) {
+        freshPane(cp -> {
+            cp.add(editorConsumazione(Optional.empty(), codAlimento, accettore, "Aggiungi"));
+        });
+    }
+
+    public void modificaConsumazione(Consumazione attuale, Consumer<Consumazione> accettore) {
+        freshPane(
+                cp -> cp.add(editorConsumazione(Optional.of(attuale), attuale.codAlimento(), accettore, "Modifica")));
+    }
+
+    public void visualizzaIngredienti(Map<Alimento, Integer> ingredientiAttuali, Optional<Runnable> aggiunta,
+            Optional<Consumer<Alimento>> modifica, Optional<Consumer<Alimento>> eliminazione,
+            Optional<Runnable> conferma) {
+        freshPane(cp -> cp.add(editorIngredienti(ingredientiAttuali, aggiunta, modifica, eliminazione, conferma)));
+    }
+
+    public void richiediNumero(String prompt, String buttonLabel, Consumer<Integer> accettore) {
+        freshPane(cp -> {
+            cp.add(Components.genericQuery(List.of(prompt), buttonLabel,
+                    l -> {
+                        try {
+                            accettore.accept(Integer.parseInt(l.get(0)));
+                        } catch (NumberFormatException e) {
+                            displayErrorMessage("Inserisci un numero valido.");
+                        }
+                    }));
+
+        });
+    }
+
+    public void richiediValoriRicetta(Consumer<ValoriRicetta> accettore) {
+        freshPane(cp -> cp.add(editorValoriRicetta(Optional.empty(), accettore, true)));
+    }
+
+    private void dettaglioCibo(Alimento cibo, boolean modificabile) {
+        freshPane(cp -> {
+            var editor = editorValoriCibo(Optional.of(cibo),
+                    nuoviValori -> getController().utenteModificaCibo(cibo, nuoviValori), "Modifica", modificabile);
+            cp.add(editor, BorderLayout.CENTER);
+            var elimina = Components.button("Elimina", () -> getController().utenteEliminaAlimento(cibo));
+            elimina.setEnabled(modificabile);
+            cp.add(elimina, BorderLayout.SOUTH);
+        });
+    }
+
+    private void dettaglioRicetta(Alimento ricetta, boolean modificabile) {
+        freshPane(cp -> cp.add(new JLabel("Dettaglio della ricetta: " + ricetta)));
     }
 
     private JComponent selezionaAlimentoSingolo(List<Alimento> a, String buttonLabel, Consumer<Alimento> onSelection) {
         var columns = List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand");
-        return Utils.singleObjectSelector(a,
+        return Components.<Alimento>singleObjectSelector(a,
                 columns,
                 t -> Utilities.mapFromLists(columns, Utilities.stringList(
                         t.nome(),
@@ -326,26 +449,8 @@ public final class View {
                         t.proteine(),
                         t.grassi(),
                         t.carboidrati(),
-                        Utils.descrizioneOptional(t.porzione()),
-                        Utils.descrizioneOptional(t.brand()))),
-                "Nome",
-                onSelection,
-                buttonLabel);
-    }
-
-    private JComponent selezionaAlimentiMultipli(List<Alimento> a, String buttonLabel,
-            Consumer<List<Alimento>> onSelection) {
-        var columns = List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand");
-        return Utils.multipleObjectSelector(a,
-                columns,
-                t -> Utilities.mapFromLists(columns, Utilities.stringList(
-                        t.nome(),
-                        t.kcal(),
-                        t.proteine(),
-                        t.grassi(),
-                        t.carboidrati(),
-                        Utils.descrizioneOptional(t.porzione()),
-                        Utils.descrizioneOptional(t.brand()))),
+                        Components.descrizioneOptional(t.porzione()),
+                        Components.descrizioneOptional(t.brand()))),
                 "Nome",
                 onSelection,
                 buttonLabel);
@@ -353,16 +458,17 @@ public final class View {
 
     private JComponent elencoAlimenti(List<Alimento> a, Consumer<Alimento> onDoubleClick) {
         var columns = List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand");
-        return Utils.objectsTable(a,
+        return Components.clickableObjectsTable(a,
                 columns,
+                "Nome",
                 t -> Utilities.mapFromLists(columns, Utilities.stringList(
                         t.nome(),
                         t.kcal(),
                         t.proteine(),
                         t.grassi(),
                         t.carboidrati(),
-                        Utils.descrizioneOptional(t.porzione()),
-                        Utils.descrizioneOptional(t.brand()))),
+                        Components.descrizioneOptional(t.porzione()),
+                        Components.descrizioneOptional(t.brand()))),
                 onDoubleClick);
     }
 
@@ -376,11 +482,11 @@ public final class View {
     }
 
     private JComponent selezionaTagMultipli(List<Tag> tags, String buttonLabel, Consumer<List<Tag>> onSelection) {
-        var columns = List.of("Parola chiave");
-        return Utils.multipleObjectSelector(tags,
+        var columns = List.of("Tag");
+        return Components.multipleObjectSelector(tags,
                 columns,
                 t -> Utilities.mapFromLists(columns, Utilities.stringList(t.parolaChiave())),
-                "Parola chiave",
+                "Tag",
                 onSelection,
                 buttonLabel);
     }
@@ -404,28 +510,105 @@ public final class View {
         return panel;
     }
 
-    private JComponent inserisiValoriAlimento(Consumer<ValoriAlimento> accettore) {
+    private JComponent editorValoriCibo(Optional<Alimento> attuale, Consumer<ValoriCibo> accettore,
+            String buttonLabel, boolean modificabile) {
         var panel = new JPanel(new BorderLayout());
-        var checkbox = new JCheckBox("Aggiungi privatamente");
-        checkbox.setSelected(false);
+        var checkbox = new JCheckBox("Privato");
+        checkbox.setSelected(attuale.map(alimento -> alimento.privato()).orElse(false));
+        checkbox.setEnabled(modificabile);
         panel.add(checkbox, BorderLayout.NORTH);
-        panel.add(Utils.genericQuery(List.of("Nome", "Kcal", "Carboidrati", "Grassi", "Proteine", "Porzione", "Brand"),
-                "Aggiungi", l -> {
+        panel.add(Components.genericQuery(
+                List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand"),
+                List.of(attuale.map(a -> a.nome()), attuale.map(a -> String.valueOf(a.kcal())),
+                        attuale.map(a -> String.valueOf(a.proteine())),
+                        attuale.map(a -> String.valueOf(a.grassi())), attuale.map(a -> String.valueOf(a.carboidrati())),
+                        attuale.map(a -> Components.descrizioneOptional(a.porzione())),
+                        attuale.map(a -> Components.descrizioneOptional(a.brand()))),
+                buttonLabel, l -> {
                     try {
                         accettore.accept(
-                                new ValoriAlimento(l.get(0),
+                                new ValoriCibo(l.get(0),
                                         Integer.parseInt(l.get(1)),
                                         Integer.parseInt(l.get(2)),
                                         Integer.parseInt(l.get(3)),
                                         Integer.parseInt(l.get(4)),
-                                        Utilities.parseOptionalInt(l.get(5)),
+                                        Utilities.parseOptionalStrictlyPositiveInt(l.get(5)),
                                         Utilities.notBlank(l.get(6)),
                                         checkbox.isSelected()));
                     } catch (NumberFormatException e) {
                         displayErrorMessage("Inserisci dei valori nutrizionali corretti.", () -> {
                         });
                     }
-                }), BorderLayout.CENTER);
+                }, modificabile), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JComponent editorIngredienti(Map<Alimento, Integer> ingredientiAttuali, Optional<Runnable> aggiunta,
+            Optional<Consumer<Alimento>> modifica, Optional<Consumer<Alimento>> eliminazione,
+            Optional<Runnable> conferma) {
+        var columns = List.of("Codice cibo", "Nome cibo", "Quantità");
+        var pulsanti = new ArrayList<Pair<String, Consumer<Optional<Entry<Alimento, Integer>>>>>();
+        aggiunta.ifPresent(runnable -> pulsanti.add(Pair.of("Aggiungi", opt -> runnable.run())));
+        modifica.ifPresent(
+                consumer -> pulsanti.add(Pair.of("Modifica", opt -> opt.ifPresent(a -> consumer.accept(a.getKey())))));
+        eliminazione
+                .ifPresent(consumer -> pulsanti
+                        .add(Pair.of("Elimina", opt -> opt.ifPresent(a -> consumer.accept(a.getKey())))));
+        conferma.ifPresent(runnable -> pulsanti.add(Pair.of("Conferma", opt -> runnable.run())));
+        return Components.<Entry<Alimento, Integer>>singleObjectMultiButtonSelector(
+                List.copyOf(ingredientiAttuali.entrySet()),
+                columns,
+                ingrediente -> Utilities.mapFromLists(columns, Utilities.stringList(
+                        ingrediente.getKey().codAlimento(), ingrediente.getKey().nome(), ingrediente.getValue())),
+                "Nome cibo",
+                pulsanti);
+    }
+
+    private JComponent editorConsumazione(Optional<Consumazione> attuale, int codAlimento,
+            Consumer<Consumazione> accettore, String buttonLabel) {
+
+        JPanel panel = new JPanel(new BorderLayout());
+        var query = Components.genericQuery(List.of("Data [YYYY-MM-DD]", "Ora [HH:MM]", "Quantità"),
+                List.of(attuale.<String>map(c -> c.data().toString()), attuale.<String>map(c -> c.ora().toString()),
+                        attuale.<String>map(c -> String.valueOf(c.quantità()))),
+                buttonLabel,
+                l -> {
+                    try {
+                        accettore.accept(
+                                new Consumazione(attuale.map(c -> c.username()).orElse(null),
+                                        attuale.map(c -> c.numero()).orElse(-1), LocalDate.parse(l.get(0)),
+                                        LocalTime.parse(l.get(1)),
+                                        codAlimento, Integer.parseInt(l.get(2))));
+                    } catch (DateTimeParseException | NumberFormatException e) {
+                        displayErrorMessage("Errore nei dati inseriti: " + e.getMessage());
+                    }
+
+                }, true);
+        panel.add(query, BorderLayout.CENTER);
+        attuale.ifPresent(consumazione -> panel
+                .add(Components.button("Elimina", () -> getController().utenteEliminaConsumazione(consumazione)),
+                        BorderLayout.SOUTH));
+        return panel;
+    }
+
+    private JComponent editorValoriRicetta(Optional<ValoriRicetta> attuale, Consumer<ValoriRicetta> accettore,
+            boolean modificabile) {
+        var panel = new JPanel(new BorderLayout());
+        var checkbox = new JCheckBox("Privato");
+        checkbox.setSelected(attuale.map(v -> v.privata()).orElse(false));
+        checkbox.setEnabled(modificabile);
+        panel.add(checkbox, BorderLayout.NORTH);
+        panel.add(Components.genericQuery(List.of("Nome", "Porzione"),
+                List.of(attuale.map(v -> v.nome()),
+                        attuale.map((ValoriRicetta v) -> Components.descrizioneOptional(v.porzione()))),
+                "Aggiungi",
+                l -> {
+                    try {
+                        accettore.accept(new ValoriRicetta(l.get(0), Optional.of(Integer.parseInt(l.get(2))), false));
+                    } catch (NumberFormatException e) {
+                        accettore.accept(new ValoriRicetta(l.get(0), Optional.empty(), checkbox.isSelected()));
+                    }
+                }, modificabile), BorderLayout.CENTER);
         return panel;
     }
 }

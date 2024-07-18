@@ -12,12 +12,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import javax.swing.AbstractListModel;
+import java.util.stream.IntStream;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -26,22 +24,35 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import it.unibo.application.commons.Utilities;
 
-public class Utils {
+public class Components {
 
     public final static int TEXTFIELD_MIN_WIDTH = 10;
 
     public static JPanel genericQuery(List<String> fieldLabels, String buttonLabel, Consumer<List<String>> consumer) {
+        return genericQuery(fieldLabels, fieldLabels.stream().map(s -> Optional.<String>empty()).toList(), buttonLabel,
+                consumer, true);
+    }
+
+    public static JPanel genericQuery(List<String> fieldLabels, List<Optional<String>> fieldValues, String buttonLabel,
+            Consumer<List<String>> consumer, boolean enabled) {
         JPanel fieldsPanel = new JPanel(new GridLayout(fieldLabels.size() * 2, 1));
         List<JTextField> fields = new ArrayList<>();
-        fieldLabels.forEach(l -> {
-            JTextField f = new JTextField();
-            fieldsPanel.add(new JLabel(l));
+        if (fieldLabels.size() != fieldValues.size()) {
+            throw new IllegalArgumentException("Field labels and values lists must have same size.");
+        }
+        for (int i = 0; i < fieldLabels.size(); i++) {
+            JTextField f = new JTextField(fieldValues.get(i).orElse(null));
+            fieldsPanel.add(new JLabel(fieldLabels.get(i)));
             fieldsPanel.add(f);
             fields.add(f);
-        });
+            f.setEnabled(enabled);
+        }
         JButton submit = new JButton(buttonLabel);
+        submit.setEnabled(enabled);
         submit.addActionListener(action -> {
             consumer.accept(fields.stream().map(jtf -> jtf.getText()).toList());
         });
@@ -64,12 +75,12 @@ public class Utils {
     }
 
     public static String descrizioneOptional(Optional<?> o) {
-        return o.isPresent() ? o.get().toString() : "non impostato";
+        return o.isPresent() ? o.get().toString() : "n/a";
     }
 
-    public static <T> JComponent objectsTable(List<T> objects, List<String> columns,
-            Function<T, Map<String, String>> translator, Consumer<T> onDoubleClick) {
-        JTable table = new JTable(new AbstractTableModel() {
+    public static <T> JComponent clickableObjectsTable(List<T> objects, List<String> columns,
+            String filterColumn, Function<T, Map<String, String>> translator, Consumer<T> onDoubleClick) {
+        var model = new AbstractTableModel() {
             @Override
             public String getColumnName(int column) {
                 return columns.get(column);
@@ -89,7 +100,11 @@ public class Utils {
             public Object getValueAt(int rowIndex, int columnIndex) {
                 return translator.apply(objects.get(rowIndex)).get(getColumnName(columnIndex));
             }
-        });
+        };
+
+        JTable table = new JTable(model);
+
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         table.addMouseListener(new MouseAdapter() {
             @Override
@@ -100,28 +115,35 @@ public class Utils {
             }
         });
 
-        return new JScrollPane(table);
-    }
-
-    public static <T> JComponent objectsList(List<T> objects, Function<T, String> translator,
-            Consumer<T> onDoubleClick) {
-        JList<String> l = new JList<>(new AbstractListModel<>() {
-            @Override
-            public int getSize() {
-                return objects.size();
-            }
-
-            @Override
-            public String getElementAt(int index) {
-                return translator.apply(objects.get(index));
-            }
+        var searchBar = new JTextField(20);
+        var searchButton = button("Cerca", () -> {
+            IntStream.range(0, model.getRowCount())
+                    .filter(i -> translator.apply(objects.get(i)).get(filterColumn).contains(searchBar.getText()))
+                    .findFirst().ifPresent(row -> table.scrollRectToVisible(table.getCellRect(row, 0, true)));
         });
-        return new JScrollPane(l);
+        JPanel searchPanel = new JPanel(new FlowLayout());
+        searchPanel.add(searchBar);
+        searchPanel.add(searchButton);
+
+        var scrollPane = new JScrollPane(table);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(searchPanel, BorderLayout.SOUTH);
+
+        return panel;
     }
 
     public static <T> JComponent singleObjectSelector(final List<T> objects, final List<String> columns,
-            final Function<T, Map<String, String>> translator, final String searchColumn, final Consumer<T> onSelection,
-            final String buttonLabel) {
+            final Function<T, Map<String, String>> translator, final String searchColumn,
+            final Consumer<T> onSelection, final String buttonLabel) {
+        return singleObjectMultiButtonSelector(objects, columns, translator, searchColumn,
+                List.of(Pair.of(buttonLabel, opt -> opt.ifPresent(onSelection))));
+    }
+
+    public static <T> JComponent singleObjectMultiButtonSelector(final List<T> objects, final List<String> columns,
+            final Function<T, Map<String, String>> translator, final String searchColumn,
+            final List<Pair<String, Consumer<Optional<T>>>> buttons) {
         var model = new AbstractTableModel() {
 
             List<T> filtered = objects;
@@ -175,25 +197,26 @@ public class Utils {
         searchPanel.add(searchBar);
         searchPanel.add(searchButton);
 
-        JPanel southPanel = new JPanel(new GridLayout(2, 1));
+        JPanel southPanel = new JPanel(new GridLayout(buttons.isEmpty() ? 1 : 2, 1));
         southPanel.add(searchPanel);
-        southPanel.add(Utils.button(buttonLabel, () -> {
-            if (table.getSelectedRow() >= 0) {
-                onSelection.accept(model.getObjectAt(table.getSelectedRow()));
-            }
-        }));
 
+        if (!buttons.isEmpty()) {
+            JPanel buttonsPanel = new JPanel(new GridLayout(1, buttons.size()));
+            buttons.forEach(p -> {
+                buttonsPanel.add(Components.button(p.getLeft(), () -> p.getRight().accept(Optional
+                        .ofNullable(table.getSelectedRow() >= 0 ? model.getObjectAt(table.getSelectedRow()) : null))));
+            });
+            southPanel.add(buttonsPanel);
+        }
         panel.add(southPanel, BorderLayout.SOUTH);
         return panel;
     }
 
     public static <T> JComponent multipleObjectSelector(final List<T> objects, final List<String> columns,
-            final Function<T, Map<String, String>> translator, final String searchColumn, final Consumer<List<T>> onSelection,
+            final Function<T, Map<String, String>> translator, final String filterColumn,
+            final Consumer<List<T>> onSelection,
             final String buttonLabel) {
         var model = new AbstractTableModel() {
-
-            List<T> filtered = objects;
-
             @Override
             public String getColumnName(int column) {
                 return columns.get(column);
@@ -201,7 +224,7 @@ public class Utils {
 
             @Override
             public int getRowCount() {
-                return filtered.size();
+                return objects.size();
             }
 
             @Override
@@ -211,44 +234,36 @@ public class Utils {
 
             @Override
             public Object getValueAt(int rowIndex, int columnIndex) {
-                return translator.apply(filtered.get(rowIndex)).get(getColumnName(columnIndex));
-            }
-
-            public void filter(Optional<String> filter) {
-                filter.ifPresentOrElse(string -> {
-                    filtered = objects.stream().filter(t -> translator.apply(t).get(searchColumn).contains(string))
-                            .toList();
-                },
-                        () -> {
-                            filtered = objects;
-                        });
-                this.fireTableDataChanged();
-            }
-
-            public T getObjectAt(int index) {
-                return filtered.get(index);
+                return translator.apply(objects.get(rowIndex)).get(getColumnName(columnIndex));
             }
         };
 
         JTable table = new JTable(model);
-        table.setRowSelectionAllowed(true);
+
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         var searchBar = new JTextField(20);
-        var searchButton = button("Filtra", () -> model.filter(Utilities.notBlank(searchBar.getText())));
-
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JScrollPane(table), BorderLayout.CENTER);
-
+        var searchButton = button("Cerca", () -> {
+            IntStream.range(0, model.getRowCount())
+                    .filter(i -> translator.apply(objects.get(i)).get(filterColumn).contains(searchBar.getText()))
+                    .findFirst().ifPresent(row -> table.scrollRectToVisible(table.getCellRect(row, 0, true)));
+        });
         JPanel searchPanel = new JPanel(new FlowLayout());
         searchPanel.add(searchBar);
         searchPanel.add(searchButton);
 
-        JPanel southPanel = new JPanel(new GridLayout(2, 1));
+        var southPanel = new JPanel(new GridLayout(2, 1));
         southPanel.add(searchPanel);
-        southPanel.add(Utils.button(buttonLabel, () -> onSelection.accept(Arrays.stream(table.getSelectedRows()).mapToObj(i -> model.getObjectAt(i)).toList())));
+        southPanel.add(Components.button(buttonLabel, () -> {
+            onSelection.accept(Arrays.stream(table.getSelectedRows()).mapToObj(i -> objects.get(i)).toList());
+        }));
 
+        var scrollPane = new JScrollPane(table);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
         panel.add(southPanel, BorderLayout.SOUTH);
+
         return panel;
     }
 }

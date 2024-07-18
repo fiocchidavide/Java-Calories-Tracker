@@ -16,7 +16,7 @@ public class MenuAlimenti extends MenuElement {
 
     private JMenuItem aggiungiCibo() {
         JMenuItem m = new JMenuItem("Aggiungi cibo");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleAggiungereCibo());
         return m;
     }
 
@@ -28,7 +28,7 @@ public class MenuAlimenti extends MenuElement {
 
     private JMenuItem creaRicetta() {
         JMenuItem m = new JMenuItem("Crea ricetta");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleAggiungereRicetta());
         return m;
     }
 

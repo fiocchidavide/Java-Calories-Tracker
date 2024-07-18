@@ -15,7 +15,7 @@ public class Utilities {
     public static Optional<String> notBlank(String s) {
         return Optional.ofNullable(s.isBlank() ? null : s);
     }
-    public static Optional<Integer> parseOptionalInt(String s){
+    public static Optional<Integer> parseOptionalStrictlyPositiveInt(String s){
         try {
             return strictlyPositive(Integer.parseInt(s));
         } catch (NumberFormatException e){

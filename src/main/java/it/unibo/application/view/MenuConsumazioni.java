@@ -14,13 +14,13 @@ public class MenuConsumazioni extends MenuElement {
 
     private JMenuItem aggiungiConsumazione() {
         JMenuItem m = new JMenuItem("Aggiungi consumazione");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleAggiungereConsumazione());
         return m;
     }
 
     private JMenuItem visualizzaConsumazioni() {
-        JMenuItem m = new JMenuItem("Visualizza consumazioni");
-        m.addActionListener(a -> {});
+        JMenuItem m = new JMenuItem("Visualizza e modifica consumazioni");
+        m.addActionListener(a -> getController().utenteRichiedeConsumazioni());
         return m;
     }
 }

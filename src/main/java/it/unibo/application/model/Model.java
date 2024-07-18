@@ -6,6 +6,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,9 +15,12 @@ import java.util.Set;
 
 import it.unibo.application.commons.Utilities;
 import it.unibo.application.dto.Alimento;
+import it.unibo.application.dto.Consumazione;
 import it.unibo.application.dto.Misurazione;
+import it.unibo.application.dto.Ricetta;
 import it.unibo.application.dto.Tag;
 import it.unibo.application.dto.Target;
+import it.unibo.application.dto.ValoriCibo;
 
 public class Model {
 
@@ -379,11 +383,11 @@ public class Model {
                 INSERT INTO PREFERENZA (Username, CodAlimento)
                 VALUES (?, ?)
                 """;
-        try(PreparedStatement s = connection.prepareStatement(AGGIUNGI_PREFERITO)){
+        try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_PREFERITO)) {
             s.setString(1, username);
             s.setInt(2, preferito.codAlimento());
             return s.executeUpdate() > 0;
-        }catch (SQLException e) {
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
@@ -422,17 +426,109 @@ public class Model {
 
     public boolean eliminaPreferito(String username, Alimento preferito) {
         final String RIMUOVI_PREFERITO = """
-                DELETE FROM PREFERENZA 
+                DELETE FROM PREFERENZA
                 WHERE Username = ?
                 AND CodAlimento = ?
                 """;
-        try(PreparedStatement s = connection.prepareStatement(RIMUOVI_PREFERITO)){
+        try (PreparedStatement s = connection.prepareStatement(RIMUOVI_PREFERITO)) {
             s.setString(1, username);
             s.setInt(2, preferito.codAlimento());
             return s.executeUpdate() > 0;
-        }catch (SQLException e) {
+        } catch (SQLException e) {
             System.err.println(e);
             return false;
         }
+    }
+
+    public List<Consumazione> leggiConsumazioni(String username) {
+        final String LEGGI_CONSUMAZIONI = """
+                SELECT Username, Numero, Data, Ora, CodAlimento, Quantita
+                FROM CONSUMAZIONE
+                WHERE Username = ?
+                ORDER BY Data DESC, Ora DESC
+                """;
+        try (PreparedStatement s = connection.prepareStatement(LEGGI_CONSUMAZIONI)) {
+            s.setString(1, username);
+            ResultSet res = s.executeQuery();
+            List<Consumazione> ret = new ArrayList<>();
+            while (res.next()) {
+                ret.add(new Consumazione(
+                        res.getString(1),
+                        res.getInt(2),
+                        res.getDate(3).toLocalDate(),
+                        res.getTime(4).toLocalTime(),
+                        res.getInt(5),
+                        res.getInt(6)));
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean aggiungiConsumazione(Consumazione consumazione) {
+        final String AGGIUNGI_CONSUMAZIONE = """
+                CALL inserisci_consumazione(?,?,?,?,?);
+                """;
+        try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_CONSUMAZIONE)) {
+            s.setString(1, consumazione.username());
+            s.setDate(2, Date.valueOf(consumazione.data()));
+            s.setTime(3, Time.valueOf(consumazione.ora()));
+            s.setInt(4, consumazione.codAlimento());
+            s.setInt(5, consumazione.quantità());
+            return s.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean modificaConsumazione(Consumazione nuoviValori) {
+        System.out.println(nuoviValori);
+        final String AGGIUNGI_CONSUMAZIONE = """
+                UPDATE CONSUMAZIONE
+                SET Data = ?, Ora = ?, CodAlimento = ?, Quantita = ?
+                WHERE Username = ? AND Numero = ?
+                        """;
+        try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_CONSUMAZIONE)) {
+            s.setDate(1, Date.valueOf(nuoviValori.data()));
+            s.setTime(2, Time.valueOf(nuoviValori.ora()));
+            s.setInt(3, nuoviValori.codAlimento());
+            s.setInt(4, nuoviValori.quantità());
+            s.setString(5, nuoviValori.username());
+            s.setInt(6, nuoviValori.numero());
+            return s.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean rimuoviConsumazione(Consumazione consumazione) {
+        final String RIMUOVI_CONSUMAZIONE = """
+                DELETE FROM CONSUMAZIONE
+                WHERE Username = ?
+                AND Numero = ?
+                """;
+        try (PreparedStatement s = connection.prepareStatement(RIMUOVI_CONSUMAZIONE)) {
+            s.setString(1, consumazione.username());
+            s.setInt(2, consumazione.numero());
+            return s.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return false;
+        }
+    }
+
+    public boolean aggiungiRicetta(Ricetta ricetta) {
+        return false;
+    }
+
+    public boolean modificaCibo(Alimento cibo, ValoriCibo nuoviValori) {
+        return false;
+    }
+
+    public boolean eliminaAlimento(Alimento alimento) {
+        return false;
     }
 }
