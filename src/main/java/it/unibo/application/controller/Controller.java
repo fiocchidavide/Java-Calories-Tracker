@@ -186,7 +186,7 @@ public class Controller {
     }
 
     private void utenteAggiungeCibo(ValoriCibo cibo) {
-        if (model.aggiungiAlimento(
+        if (model.aggiungiCibo(
                 new Alimento(-1, cibo.nome(), cibo.kcal(), cibo.carboidrati(), cibo.grassi(), cibo.proteine(),
                         cibo.porzione(), 'C', cibo.brand(), utenteAttuale(), cibo.privato()))) {
             view.displayMessage("Cibo inserito correttamente.", () -> utenteRichiedeSuoiAlimenti());

@@ -322,7 +322,7 @@ public class Model {
         }
     }
 
-    public boolean aggiungiAlimento(Alimento cibo) {
+    public boolean aggiungiCibo(Alimento cibo) {
         final String AGGIUNGI_CIBO = "INSERT INTO ALIMENTO(Nome, Kcal, Carboidrati, Grassi, Proteine, Porzione, Tipo, Brand, Proprietario, Privato) VALUES (?,?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement s = connection.prepareStatement(AGGIUNGI_CIBO)) {
             s.setString(1, cibo.nome());
@@ -866,11 +866,11 @@ public class Model {
         }
     }
 
-    public Optional<BigDecimal> differenzaDiPeso(String username, LocalDate dataInizio, LocalDate dataFine){
+    public Optional<BigDecimal> differenzaDiPeso(String username, LocalDate dataInizio, LocalDate dataFine) {
         final String CALCOLA_DIFFERENZA = """
                 WITH PesoIniziale AS (
-                    SELECT Peso 
-                    FROM MISURAZIONE 
+                    SELECT Peso
+                    FROM MISURAZIONE
                     WHERE Username = ? AND Data <= ?
                     ORDER BY Data ASC
                     LIMIT 1
@@ -890,15 +890,15 @@ public class Model {
             s.setString(3, username);
             s.setDate(4, Date.valueOf(dataFine));
             var res = s.executeQuery();
-            
+
             return Optional.ofNullable(res.next() ? res.getObject(1, BigDecimal.class) : null);
-            
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public Optional<BigDecimal> stimaTdee(String username, LocalDate dataInizio, LocalDate dataFine){
+    public Optional<BigDecimal> stimaTdee(String username, LocalDate dataInizio, LocalDate dataFine) {
         final String CALCOLA_TDEE = """
                 CALL CalcolaStimaTDEE(?,?,?)
                 """;
@@ -907,9 +907,9 @@ public class Model {
             s.setDate(2, Date.valueOf(dataInizio));
             s.setDate(3, Date.valueOf(dataFine));
             var res = s.executeQuery();
-            
+
             return Optional.ofNullable(res.next() ? res.getObject(1, BigDecimal.class) : null);
-            
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
