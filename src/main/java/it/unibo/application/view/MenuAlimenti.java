@@ -34,7 +34,7 @@ public class MenuAlimenti extends MenuElement {
 
     private JMenuItem elencoAlimenti() {
         JMenuItem m = new JMenuItem("Elenco alimenti");
-        m.addActionListener(a -> getController().utenteVuoleCercareAlimenti());
+        m.addActionListener(a -> getController().utenteVuoleConsultareElenco());
         return m;
     }
 }

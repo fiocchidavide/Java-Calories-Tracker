@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -34,11 +35,11 @@ public class Components {
 
     public static JPanel genericQuery(List<String> fieldLabels, String buttonLabel, Consumer<List<String>> consumer) {
         return genericQuery(fieldLabels, fieldLabels.stream().map(s -> Optional.<String>empty()).toList(), buttonLabel,
-                consumer, true);
+                consumer);
     }
 
     public static JPanel genericQuery(List<String> fieldLabels, List<Optional<String>> fieldValues, String buttonLabel,
-            Consumer<List<String>> consumer, boolean enabled) {
+            Consumer<List<String>> consumer) {
         JPanel fieldsPanel = new JPanel(new GridLayout(fieldLabels.size() * 2, 1));
         List<JTextField> fields = new ArrayList<>();
         if (fieldLabels.size() != fieldValues.size()) {
@@ -49,10 +50,8 @@ public class Components {
             fieldsPanel.add(new JLabel(fieldLabels.get(i)));
             fieldsPanel.add(f);
             fields.add(f);
-            f.setEnabled(enabled);
         }
         JButton submit = new JButton(buttonLabel);
-        submit.setEnabled(enabled);
         submit.addActionListener(action -> {
             consumer.accept(fields.stream().map(jtf -> jtf.getText()).toList());
         });
@@ -212,7 +211,8 @@ public class Components {
         return panel;
     }
 
-    public static <T> JComponent multipleObjectSelector(final List<T> objects, final List<String> columns,
+    public static <T> JComponent multipleObjectSelector(final List<T> objects,
+            final Optional<List<Boolean>> currentlySelected, final List<String> columns,
             final Function<T, Map<String, String>> translator, final String filterColumn,
             final Consumer<List<T>> onSelection,
             final String buttonLabel) {
@@ -242,6 +242,15 @@ public class Components {
 
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
+        if (currentlySelected.isPresent()) {
+            if (currentlySelected.get().size() != objects.size()) {
+                throw new IllegalArgumentException("Currently selected list must have same size of objects list.");
+            } else {
+                IntStream.range(0, objects.size()).filter(i -> currentlySelected.get().get(i))
+                        .forEach(i -> table.getSelectionModel().addSelectionInterval(i, i));
+            }
+        }
+
         var searchBar = new JTextField(20);
         var searchButton = button("Cerca", () -> {
             IntStream.range(0, model.getRowCount())
@@ -265,5 +274,30 @@ public class Components {
         panel.add(southPanel, BorderLayout.SOUTH);
 
         return panel;
+    }
+
+    public static JComponent keyValueTable(List<Pair<String, String>> items) {
+        var model = new AbstractTableModel() {
+
+            @Override
+            public int getRowCount() {
+                return items.size();
+            }
+
+            @Override
+            public int getColumnCount() {
+                return 2;
+            }
+
+            @Override
+            public Object getValueAt(int rowIndex, int columnIndex) {
+                return columnIndex == 0 ? items.get(rowIndex).getLeft() : items.get(rowIndex).getRight();
+            }
+
+        };
+        var table = new JTable(model);
+        table.setRowSelectionAllowed(false);
+        table.setTableHeader(null);
+        return table;
     }
 }

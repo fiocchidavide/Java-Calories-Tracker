@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import it.unibo.application.commons.Utilities;
 import it.unibo.application.dto.Alimento;
 import it.unibo.application.dto.Consumazione;
@@ -54,6 +56,8 @@ public class Controller {
     public void utenteRichiedeRegistrazione(String username, char[] password) {
         if (model.registerUser(username, password)) {
             view.displayMessage("Utente registrato, procedere al login.");
+        }else {
+            view.displayErrorMessage("Lo username esiste già.");
         }
     }
 
@@ -73,22 +77,22 @@ public class Controller {
 
     public void utenteImpostaTarget(Optional<Target> target) {
         if (model.impostaTarget(utenteAttuale(), target)) {
-            view.displayMessage("Target impostato correttamente.");
+            view.displayMessage("Target impostato correttamente.", this::utenteRichiedeTarget);
         } else {
             view.displayErrorMessage("Target non valido.");
         }
     }
 
-    public void utenteImpostaObbiettivo(Optional<Integer> obbiettivo) {
+    public void utenteImpostaObbiettivo(Optional<BigDecimal> obbiettivo) {
         if (model.impostaObbiettivo(utenteAttuale(), obbiettivo)) {
-            view.displayMessage("Obbiettivo impostato correttamente.");
+            view.displayMessage("Obbiettivo impostato correttamente.", this::utenteRichiedeObbiettivo);
         } else {
             view.displayErrorMessage("Obbiettivo non valido.");
         }
     }
 
     public void utenteRichiedeObbiettivo() {
-        view.visualizzaObbiettivo(model.leggiObbiettivo(utenteAttuale()));
+        view.visualizzaBigDecimal("Obbiettivo di peso corporeo attuale", model.leggiObbiettivo(utenteAttuale()));
     }
 
     public void utenteRichiedeMisurazioni() {
@@ -120,20 +124,20 @@ public class Controller {
     }
 
     public void utenteRichiedeTag() {
-        view.visualizzaTag(model.leggiTag(), t -> {
-        });
+        view.richiediTagSingolo(model.leggiTag(), List.of());
     }
 
     public void utenteAggiungeTag(String parolaChiave) {
         if (model.aggiungiTag(new Tag(parolaChiave, utenteAttuale()))) {
-            view.displayMessage("Tag inserito correttamente.");
+            view.displayMessage("Tag inserito correttamente.", this::utenteRichiedeSuoiTag);
         } else {
             view.displayErrorMessage("Errore nell'inserimento dell tag.");
         }
     }
 
     public void utenteRichiedeSuoiTag() {
-        view.visualizzaTag(model.leggiTag(), t -> view.dettaglioTag(t));
+        view.richiediTagSingolo(model.leggiTag(),
+                List.of(Pair.of("Elimina", opt -> opt.ifPresent(this::utenteEliminaTag))));
     }
 
     public void utenteEliminaTag(Tag tag) {
@@ -148,36 +152,46 @@ public class Controller {
         view.richiediValoriCibo(cibo -> utenteAggiungeCibo(cibo));
     }
 
-    public void utenteModificaCibo(Alimento cibo, ValoriCibo nuoviValori) {
-        if(cibo.tipo() != 'C' || !utenteAttuale().equals(cibo.proprietario())){
+    public void utenteModificaValoriCibo(Alimento cibo, ValoriCibo nuoviValori) {
+        if (cibo.tipo() != 'C' || !utenteAttuale().equals(cibo.proprietario())) {
             throw new IllegalArgumentException("L'alimento " + cibo + " non è un cibo o non è dell'utente.");
         }
-        if (model.modificaCibo(cibo, nuoviValori)) {
-            view.displayMessage("Cibo modificato correttamente.", view::visualizzaMenuPrincipale);
+        if (model.modificaValoriCibo(cibo, nuoviValori)) {
+            view.displayMessage("Cibo modificato correttamente.", this::utenteRichiedeSuoiAlimenti);
         } else {
             view.displayErrorMessage("Impossibile modificare il cibo.");
         }
     }
 
+    public void utenteModificaValoriRicetta(Alimento ricetta, ValoriRicetta nuoviValori) {
+        if (ricetta.tipo() != 'R' || !utenteAttuale().equals(ricetta.proprietario())) {
+            throw new IllegalArgumentException("L'alimento " + ricetta + " non è una ricetta o non è dell'utente.");
+        }
+        if (model.modificaValoriRicetta(ricetta, nuoviValori)) {
+            view.displayMessage("Ricetta modificata correttamente.", this::utenteRichiedeSuoiAlimenti);
+        } else {
+            view.displayErrorMessage("Impossibile modificare la ricetta.");
+        }
+    }
+
     public void utenteEliminaAlimento(Alimento alimento) {
-        if(!utenteAttuale().equals(alimento.proprietario())){
+        if (!utenteAttuale().equals(alimento.proprietario())) {
             throw new IllegalArgumentException("L'alimento non appartiene all'utente.");
         }
         if (model.eliminaAlimento(alimento)) {
-            view.displayMessage("Alimento eliminato correttamente.", view::visualizzaMenuPrincipale);
+            view.displayMessage("Alimento eliminato correttamente.", this::utenteRichiedeSuoiAlimenti);
         } else {
-            view.displayErrorMessage("Impossibile eliminare l'alimento.");
+            view.displayErrorMessage("Impossibile eliminare l'alimento.", this::utenteRichiedeSuoiAlimenti);
         }
     }
 
     private void utenteAggiungeCibo(ValoriCibo cibo) {
-        System.out.println(cibo);
         if (model.aggiungiAlimento(
                 new Alimento(-1, cibo.nome(), cibo.kcal(), cibo.carboidrati(), cibo.grassi(), cibo.proteine(),
                         cibo.porzione(), 'C', cibo.brand(), utenteAttuale(), cibo.privato()))) {
             view.displayMessage("Cibo inserito correttamente.", () -> utenteRichiedeSuoiAlimenti());
         } else {
-            view.displayErrorMessage("Errore nell'inserimento del cibo.");
+            view.displayErrorMessage("Impossibile inserire il cibo.");
         }
     }
 
@@ -190,9 +204,33 @@ public class Controller {
         view.mostraDettaglio(a, a.proprietario().equals(utenteAttuale()));
     }
 
-    public void utenteVuoleCercareAlimenti() {
+    public void utenteRichiedeIngredienti(Alimento a) {
+        this.ingredientiCorrentementeConsiderati = Optional.of(model.leggiIngredienti(a));
+
+        if (a.proprietario().equals(utenteAttuale())) {
+            final var ingredientiIniziali = Map.copyOf(ingredientiCorrentementeConsiderati.get());
+            this.operazioneInAttesaDiIngredienti = Optional.of(
+                    nuoviIngredienti -> utenteModificaIngredienti(a, ingredientiIniziali, nuoviIngredienti));
+            utenteVuoleModificareIngredientiCorrentementeConsiderati();
+        } else {
+            view.visualizzaIngredienti(ingredientiCorrentementeConsiderati.get(), Optional.empty(), Optional.empty(),
+                    Optional.empty(), Optional.of(() -> this.utenteRichiedeDettaglio(a)));
+        }
+    }
+
+    private void utenteModificaIngredienti(Alimento ricetta, Map<Alimento, Integer> ingredientiAttuali,
+            Map<Alimento, Integer> nuoviIngredienti) {
+        if (model.modificaIngredienti(ricetta, ingredientiAttuali, nuoviIngredienti)) {
+            view.displayMessage("Ingredienti modificati correttamente.", () -> utenteRichiedeDettaglio(ricetta));
+        } else {
+            view.displayErrorMessage("Impossibile modificare gli ingredienti.", () -> utenteRichiedeDettaglio(ricetta));
+        }
+    }
+
+    public void utenteVuoleConsultareElenco() {
         view.richiediRicerca(model.leggiTag(),
-                p -> utenteEffettuaRicerca(p.getLeft(), p.getRight(), view::elencaAlimenti));
+                p -> utenteEffettuaRicerca(p.getLeft(), p.getRight(), alimenti -> view
+                        .schermataSelezioneAlimento(alimenti, "Visualizza dettaglio", this::utenteRichiedeDettaglio)));
     }
 
     public void utenteVuoleAggiungerePreferito() {
@@ -225,6 +263,44 @@ public class Controller {
                         alimenti -> view.schermataSelezioneAlimento(alimenti, "Seleziona",
                                 alimento -> view.richiediConsumazione(alimento.codAlimento(),
                                         this::utenteAggiungeConsumazione))));
+    }
+
+    public void utenteVuoleVisualizzareValoriGiorno() {
+        view.richiediDate(List.of("Inserire il giorno di cui si vogliono conoscere i valori"),
+                l -> this.utenteRichiedeValoriGiorno(l.get(0)));
+    }
+
+    private void utenteRichiedeValoriGiorno(LocalDate data) {
+        view.visualizzaValori("Valori consumati il giorno " + data, model.calcolaValoriGiorno(utenteAttuale(), data));
+    }
+
+    public void utenteVuoleVisualizzareValoriMedi() {
+        view.richiediDate(List.of("Data inizio", "Data fine"), l -> this.utenteRichiedeValoriMedi(l.get(0), l.get(1)));
+    }
+
+    private void utenteRichiedeValoriMedi(LocalDate dataInizio, LocalDate dataFine) {
+        view.visualizzaValori("Valori assunti mediamente tra il giorno " + dataInizio + " e il giorno " + dataFine,
+                model.calcolaValoriMediPeriodo(utenteAttuale(), dataInizio, dataFine));
+    }
+
+    public void utenteVuoleVisualizzareDifferenzaDiPeso() {
+        view.richiediDate(List.of("Data inizio", "Data fine"),
+                l -> this.utenteRichiedeDifferenzaDiPeso(l.get(0), l.get(1)));
+    }
+
+    private void utenteRichiedeDifferenzaDiPeso(LocalDate dataInizio, LocalDate dataFine) {
+        view.visualizzaBigDecimal("Differenza di peso tra il giorno " + dataInizio + " e il giorno " + dataFine,
+                model.differenzaDiPeso(utenteAttuale(), dataInizio, dataFine));
+    }
+
+    public void utenteVuoleVisualizzareTdee() {
+        view.richiediDate(List.of("Data inizio", "Data fine"),
+                l -> this.utenteRichiedeStimaTdee(l.get(0), l.get(1)));
+    }
+
+    private void utenteRichiedeStimaTdee(LocalDate dataInizio, LocalDate dataFine) {
+        view.visualizzaBigDecimal("Stima del TDEE tra il giorno " + dataInizio + " e il giorno " + dataFine,
+                model.stimaTdee(utenteAttuale(), dataInizio, dataFine));
     }
 
     private void utenteAggiungeConsumazione(Consumazione consumazione) {
@@ -263,10 +339,11 @@ public class Controller {
         this.operazioneInAttesaDiIngredienti = Optional.of(ingredienti -> {
             view.richiediValoriRicetta(valoriRicetta -> utenteAggiungeRicetta(valoriRicetta, ingredienti));
         });
-        view.displayMessage("Inserisci gli ingredienti per la ricetta.", this::utenteVuoleAggiungereIngredienti);
+        view.displayMessage("Inserisci gli ingredienti per la ricetta.",
+                this::utenteVuoleModificareIngredientiCorrentementeConsiderati);
     }
 
-    public void utenteVuoleAggiungereIngredienti() {
+    private void utenteVuoleModificareIngredientiCorrentementeConsiderati() {
         view.visualizzaIngredienti(ingredientiCorrentementeConsiderati.get(),
                 Optional.of(
                         () -> view.richiediRicerca(model.leggiTag(),
@@ -275,53 +352,74 @@ public class Controller {
                                                 alimento -> view.richiediNumero("Quantità dell'ingrediente:",
                                                         "Seleziona quantità",
                                                         quantità -> utenteAggiungeIngrediente(alimento, quantità)))))),
-                        Optional.<Consumer<Alimento>>of(
-                            alimento -> view.richiediNumero("Quantità dell'ingrediente:",
-                            "Seleziona quantità",
-                            quantità -> utenteModificaIngrediente(alimento, quantità))
-                        ),
-                        Optional.<Consumer<Alimento>>of(
-                            alimento -> utenteEliminaIngrediente(alimento)
-                        ),
-                        Optional.of(
-                            () -> operazioneInAttesaDiIngredienti.ifPresent(c -> c.accept(ingredientiCorrentementeConsiderati.get()))
-                        ));
+                Optional.<Consumer<Alimento>>of(
+                        alimento -> view.richiediNumero("Quantità dell'ingrediente:",
+                                "Seleziona quantità",
+                                quantità -> utenteModificaIngrediente(alimento, quantità))),
+                Optional.<Consumer<Alimento>>of(
+                        alimento -> utenteEliminaIngrediente(alimento)),
+                Optional.of(
+                        () -> operazioneInAttesaDiIngredienti
+                                .ifPresent(c -> c.accept(ingredientiCorrentementeConsiderati.get()))));
+    }
+
+    public void utenteVuoleModificareAssociazioni() {
+        view.schermataSelezioneAlimento(model.alimentiPropri(utenteAttuale()), "Gestisci tag associati",
+                a -> utenteVuoleGestireTag(a));
+    }
+
+    private void utenteVuoleGestireTag(Alimento a) {
+        var tagAttuali = model.leggiTagAlimento(a);
+        var tagDisponibili = model.leggiTag();
+        view.richiediTagMultipli(tagDisponibili,
+                Optional.of(tagDisponibili.stream().map(t -> tagAttuali.contains(t)).toList()), "Modifica associazioni",
+                nuoviTag -> this.utenteModificaTag(a, tagAttuali, Set.copyOf(nuoviTag)));
+    }
+
+    private void utenteModificaTag(Alimento alimento, Set<Tag> attuali, Set<Tag> nuovi) {
+        if (model.modificaTagAlimento(alimento, attuali, nuovi)) {
+            view.displayMessage("Tag modificati correttamente.", this::utenteVuoleModificareAssociazioni);
+        } else {
+            view.displayErrorMessage("Errore durante la rimozione dei tag", this::utenteVuoleModificareAssociazioni);
+        }
     }
 
     private void utenteAggiungeIngrediente(Alimento alimento, int quantità) {
-        if(ingredientiCorrentementeConsiderati.get().containsKey(alimento)) {
-            view.displayErrorMessage("L'ingrediente è già presente.", this::utenteVuoleAggiungereIngredienti);
-        }else{
+        if (ingredientiCorrentementeConsiderati.get().containsKey(alimento)) {
+            view.displayErrorMessage("L'ingrediente è già presente.",
+                    this::utenteVuoleModificareIngredientiCorrentementeConsiderati);
+        } else {
             ingredientiCorrentementeConsiderati.get().put(alimento, quantità);
-            view.displayMessage("Ingrediente aggiunto correttamente.", this::utenteVuoleAggiungereIngredienti);
+            utenteVuoleModificareIngredientiCorrentementeConsiderati();
         }
     }
 
     private void utenteModificaIngrediente(Alimento alimento, int quantità) {
         ingredientiCorrentementeConsiderati.get().put(alimento, quantità);
-        view.displayMessage("Ingrediente modificato correttamente.", this::utenteVuoleAggiungereIngredienti);
+        utenteVuoleModificareIngredientiCorrentementeConsiderati();
     }
 
     private void utenteEliminaIngrediente(Alimento alimento) {
         ingredientiCorrentementeConsiderati.get().remove(alimento);
-        view.displayMessage("Ingrediente eliminao correttamente.", this::utenteVuoleAggiungereIngredienti);
+        utenteVuoleModificareIngredientiCorrentementeConsiderati();
     }
 
     private void utenteAggiungeRicetta(ValoriRicetta valoriRicetta, Map<Alimento, Integer> ingredienti) {
-        if(model.aggiungiRicetta(new Ricetta(utenteAttuale(), valoriRicetta, ingredienti))){
+        if (model.aggiungiRicetta(new Ricetta(utenteAttuale(), valoriRicetta, ingredienti))) {
             this.ingredientiCorrentementeConsiderati = Optional.empty();
             this.operazioneInAttesaDiIngredienti = Optional.empty();
             view.displayMessage("Ricetta aggiunta correttamente.", view::visualizzaMenuPrincipale);
-        }else{
-            view.displayErrorMessage("Impossibile aggiungere la ricetta, controllare i dati inseriti.", this::utenteVuoleAggiungereIngredienti);
+        } else {
+            view.displayErrorMessage("Impossibile aggiungere la ricetta, controllare i dati inseriti.",
+                    this::utenteVuoleModificareIngredientiCorrentementeConsiderati);
         }
     }
 
     private void utenteAggiungePreferito(Alimento preferito) {
         if (model.aggiungiPreferito(utenteAttuale(), preferito)) {
-            view.displayMessage("Preferito aggiunto correttamente.");
+            view.displayMessage("Preferito aggiunto correttamente.", this::utenteRichiedePreferiti);
         } else {
-            view.displayErrorMessage("Impossibile aggiungere il preferito.");
+            view.displayErrorMessage("Impossibile aggiungere il preferito.", this::utenteRichiedePreferiti);
         }
     }
 

@@ -29,12 +29,9 @@ import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
-import javax.swing.table.AbstractTableModel;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -46,6 +43,7 @@ import it.unibo.application.dto.Consumazione;
 import it.unibo.application.dto.Misurazione;
 import it.unibo.application.dto.Tag;
 import it.unibo.application.dto.Target;
+import it.unibo.application.dto.Valori;
 import it.unibo.application.dto.ValoriCibo;
 import it.unibo.application.dto.ValoriRicetta;
 
@@ -212,10 +210,9 @@ public final class View {
         });
     }
 
-    public void visualizzaObbiettivo(Optional<Integer> obbiettivo) {
-        freshPane(cp -> {
-            cp.add(new JLabel("Obbiettivo di peso corporeo: " + Components.descrizioneOptional(obbiettivo) + "kg"));
-        });
+    public void visualizzaBigDecimal(String label, Optional<BigDecimal> bigDecimal) {
+        freshPane(cp -> cp.add(Components.keyValueTable(
+                List.of(Pair.of(label, Components.descrizioneOptional(bigDecimal))))));
     }
 
     public void richiediObbiettivo() {
@@ -224,75 +221,51 @@ public final class View {
                     List.of("Obbiettivo"),
                     "Imposta",
                     l -> {
-                        getController().utenteImpostaObbiettivo(l.stream().map(s -> {
-                            try {
-                                return Optional.of(Integer.parseInt(s));
-                            } catch (NumberFormatException e) {
-                                Optional<Integer> opt = Optional.empty();
-                                return opt;
-                            }
-                        }).findAny().get());
+                        try {
+                            getController().utenteImpostaObbiettivo(Optional.of(new BigDecimal(l.get(0))));
+                        } catch (NumberFormatException e) {
+                            displayErrorMessage("Inserisci un numero valido.");
+                        }
                     }));
         });
     }
 
-    public void visualizzaTarget(Optional<Target> target) {
+    public void richiediDate(List<String> labels, Consumer<List<LocalDate>> accettore) {
+        freshPane(
+                cp -> cp.add(Components.genericQuery(labels.stream().map(s -> new String(s + " [YYYY-MM-DD]")).toList(),
+                        "Conferma date",
+                        l -> {
+                            try {
+                                accettore.accept(l.stream().map(s -> LocalDate.parse(s)).toList());
+                            } catch (DateTimeParseException e) {
+                                displayErrorMessage("Controllare i dati inseriti.");
+                            }
+                        })));
+    }
+
+    public void visualizzaValori(String label, Valori valori) {
         freshPane(cp -> {
-            var model = new AbstractTableModel() {
-
-                @Override
-                public String getColumnName(int columnIndex) {
-                    switch (columnIndex) {
-                        case 0:
-                            return "Kcal";
-                        case 1:
-                            return "Percentuale proteine";
-                        case 2:
-                            return "Percentuale grassi";
-                        case 3:
-                            return "Percentuale carboidrati";
-                        default:
-                            return null;
-                    }
-                }
-
-                @Override
-                public int getRowCount() {
-                    return 1;
-                }
-
-                @Override
-                public int getColumnCount() {
-                    return 4;
-                }
-
-                @Override
-                public Object getValueAt(int rowIndex, int columnIndex) {
-                    if (rowIndex == 0) {
-                        switch (columnIndex) {
-                            case 0:
-                                return Components.descrizioneOptional(target.map(t -> t.kcal()));
-                            case 1:
-                                return Components.descrizioneOptional(
-                                        target.isPresent() ? target.get().percentualeProteine() : Optional.empty());
-                            case 2:
-                                return Components.descrizioneOptional(
-                                        target.isPresent() ? target.get().percentualeGrassi() : Optional.empty());
-                            case 3:
-                                return Components.descrizioneOptional(
-                                        target.isPresent() ? target.get().percentualeCarboidrati() : Optional.empty());
-                        }
-                    }
-                    return null;
-                }
-
-            };
-
-            var table = new JTable(model);
-            table.setRowSelectionAllowed(false);
-
-            cp.add(new JScrollPane(table));
+            cp.add(Components.keyValueTable(
+                    List.of(
+                            Utilities.stringPair("Kcal", valori.kcal()),
+                            Utilities.stringPair("Proteine", valori.proteine()),
+                            Utilities.stringPair("Grassi", valori.grassi()),
+                            Utilities.stringPair("Carboidrati", valori.carboidrati()))),BorderLayout.CENTER);
+            cp.add(new JLabel(label), BorderLayout.NORTH);
         });
+    }
+
+    public void visualizzaTarget(Optional<Target> target) {
+
+        freshPane(cp -> cp.add(Components.keyValueTable(
+                List.of(
+                        Pair.of("Kcal", Components.descrizioneOptional(target.map(t -> t.kcal()))),
+                        Pair.of("Percentuale proteine", Components.descrizioneOptional(
+                                target.isPresent() ? target.get().percentualeProteine() : Optional.empty())),
+                        Pair.of("Percentuale grassi", Components.descrizioneOptional(
+                                target.isPresent() ? target.get().percentualeGrassi() : Optional.empty())),
+                        Pair.of("Percentuale carboidrati", Components.descrizioneOptional(
+                                target.isPresent() ? target.get().percentualeCarboidrati() : Optional.empty()))))));
     }
 
     public void richiediTarget() {
@@ -301,35 +274,32 @@ public final class View {
                     List.of("Kcal", "Percentuale proteine", "Percentuale grassi", "Percentuale carboidrati"),
                     "Imposta",
                     l -> {
-                        List<Optional<Integer>> values = l.stream().map(s -> {
-                            try {
-                                return Optional.of(Integer.parseInt(s));
-                            } catch (NumberFormatException e) {
-                                Optional<Integer> opt = Optional.empty();
-                                return opt;
+                        try {
+                            List<Optional<Integer>> values = l.stream()
+                                    .map(s -> Optional.ofNullable(s.isBlank() ? null : Integer.parseInt(s))).toList();
+                            if (values.get(0).isEmpty() && values.subList(1, values.size()).stream()
+                                    .filter(v -> v.isPresent()).findAny().isPresent()) {
+                                displayErrorMessage("Le Kcal sono obbligatorie.", () -> {
+                                });
+                            } else {
+                                getController().utenteImpostaTarget(
+                                        values.get(0).isPresent() ? Optional.of(new Target(values.get(0).get(),
+                                                values.get(1),
+                                                values.get(2),
+                                                values.get(3))) : Optional.empty());
                             }
-                        }).toList();
-                        if (values.get(0).isEmpty() && values.subList(1, values.size()).stream()
-                                .filter(v -> v.isPresent()).findAny().isPresent()) {
-                            displayErrorMessage("Le Kcal sono obbligatorie.", () -> {
-                            });
-                        } else {
-                            getController().utenteImpostaTarget(
-                                    values.get(0).isPresent() ? Optional.of(new Target(values.get(0).get(),
-                                            values.get(1),
-                                            values.get(2),
-                                            values.get(3))) : Optional.empty());
+                        } catch (NumberFormatException e) {
+                            displayErrorMessage("I valori inseriti non sono validi.");
                         }
                     }));
         });
     }
 
-    public void visualizzaTag(List<Tag> tag, Consumer<Tag> onDoubleClick) {
+    public void richiediTagSingolo(List<Tag> tags, List<Pair<String, Consumer<Optional<Tag>>>> buttons) {
         var columns = List.of("Parola chiave");
-        freshPane(cp -> cp.add(Components.clickableObjectsTable(tag, columns,
-                "Parola chiave",
-                t -> Utilities.mapFromLists(columns, Utilities.stringList(t.parolaChiave())),
-                onDoubleClick)));
+        freshPane(cp -> cp.add(Components.<Tag>singleObjectMultiButtonSelector(tags, columns,
+                t -> Utilities.mapFromLists(columns, Utilities.stringList(t.parolaChiave())), "Parola chiave",
+                buttons)));
     }
 
     public void richiediTag() {
@@ -340,22 +310,8 @@ public final class View {
         });
     }
 
-    public void dettaglioTag(Tag tag) {
-        freshPane(cp -> {
-            var label = new JLabel(tag.parolaChiave());
-            label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setBorder(defaultBorder());
-            cp.add(label, BorderLayout.CENTER);
-            cp.add(Components.button("Elimina", () -> getController().utenteEliminaTag(tag)), BorderLayout.SOUTH);
-        });
-    }
-
     public void richiediValoriCibo(Consumer<ValoriCibo> accettore) {
-        freshPane(cp -> cp.add(editorValoriCibo(Optional.empty(), accettore, "Aggiungi", true)));
-    }
-
-    public void dettaglioAlimento(Alimento a, boolean modificabile) {
-        System.out.println("Alimento " + a.codAlimento());
+        freshPane(cp -> cp.add(editorValoriCibo(Optional.empty(), accettore, "Aggiungi")));
     }
 
     public void richiediRicerca(List<Tag> tag, Consumer<Pair<Optional<String>, Set<Tag>>> accettore) {
@@ -366,16 +322,8 @@ public final class View {
         freshPane(cp -> cp.add(selezionaAlimentoSingolo(a, buttonLabel, onSelection)));
     }
 
-    public void elencaAlimenti(List<Alimento> a) {
-        freshPane(cp -> cp.add(elencoAlimenti(a, alimento -> getController().utenteRichiedeDettaglio(alimento))));
-    }
-
     public void mostraDettaglio(Alimento a, boolean modificabile) {
-        if (a.tipo() == 'C') {
-            dettaglioCibo(a, modificabile);
-        } else {
-            dettaglioRicetta(a, modificabile);
-        }
+        freshPane(cp -> cp.add(dettaglioAlimento(a, modificabile)));
     }
 
     public void visualizzaConsumazioni(List<Consumazione> consumazioni, Consumer<Consumazione> onDoubleClick) {
@@ -421,26 +369,16 @@ public final class View {
     }
 
     public void richiediValoriRicetta(Consumer<ValoriRicetta> accettore) {
-        freshPane(cp -> cp.add(editorValoriRicetta(Optional.empty(), accettore, true)));
+        freshPane(cp -> cp.add(editorValoriRicetta(Optional.empty(), accettore, "Crea ricetta")));
     }
 
-    private void dettaglioCibo(Alimento cibo, boolean modificabile) {
-        freshPane(cp -> {
-            var editor = editorValoriCibo(Optional.of(cibo),
-                    nuoviValori -> getController().utenteModificaCibo(cibo, nuoviValori), "Modifica", modificabile);
-            cp.add(editor, BorderLayout.CENTER);
-            var elimina = Components.button("Elimina", () -> getController().utenteEliminaAlimento(cibo));
-            elimina.setEnabled(modificabile);
-            cp.add(elimina, BorderLayout.SOUTH);
-        });
-    }
-
-    private void dettaglioRicetta(Alimento ricetta, boolean modificabile) {
-        freshPane(cp -> cp.add(new JLabel("Dettaglio della ricetta: " + ricetta)));
+    public void richiediTagMultipli(List<Tag> tag, Optional<List<Boolean>> selezionati, String buttonLabel,
+            Consumer<List<Tag>> accettore) {
+        freshPane(cp -> cp.add(selezionaTagMultipli(tag, selezionati, buttonLabel, accettore)));
     }
 
     private JComponent selezionaAlimentoSingolo(List<Alimento> a, String buttonLabel, Consumer<Alimento> onSelection) {
-        var columns = List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand");
+        var columns = List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Tipo", "Porzione", "Brand");
         return Components.<Alimento>singleObjectSelector(a,
                 columns,
                 t -> Utilities.mapFromLists(columns, Utilities.stringList(
@@ -449,27 +387,12 @@ public final class View {
                         t.proteine(),
                         t.grassi(),
                         t.carboidrati(),
+                        t.tipo() == 'R' ? "Ricetta" : "Cibo",
                         Components.descrizioneOptional(t.porzione()),
                         Components.descrizioneOptional(t.brand()))),
                 "Nome",
                 onSelection,
                 buttonLabel);
-    }
-
-    private JComponent elencoAlimenti(List<Alimento> a, Consumer<Alimento> onDoubleClick) {
-        var columns = List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand");
-        return Components.clickableObjectsTable(a,
-                columns,
-                "Nome",
-                t -> Utilities.mapFromLists(columns, Utilities.stringList(
-                        t.nome(),
-                        t.kcal(),
-                        t.proteine(),
-                        t.grassi(),
-                        t.carboidrati(),
-                        Components.descrizioneOptional(t.porzione()),
-                        Components.descrizioneOptional(t.brand()))),
-                onDoubleClick);
     }
 
     private void freshPane(Consumer<Container> consumer) {
@@ -481,9 +404,11 @@ public final class View {
         this.mainFrame.pack();
     }
 
-    private JComponent selezionaTagMultipli(List<Tag> tags, String buttonLabel, Consumer<List<Tag>> onSelection) {
+    private JComponent selezionaTagMultipli(List<Tag> tags, Optional<List<Boolean>> selezionati, String buttonLabel,
+            Consumer<List<Tag>> onSelection) {
         var columns = List.of("Tag");
         return Components.multipleObjectSelector(tags,
+                selezionati,
                 columns,
                 t -> Utilities.mapFromLists(columns, Utilities.stringList(t.parolaChiave())),
                 "Tag",
@@ -494,15 +419,18 @@ public final class View {
     private JComponent ricercaAlimento(List<Tag> tag, Consumer<Pair<Optional<String>, Set<Tag>>> accettore) {
 
         JPanel panel = new JPanel(new BorderLayout());
+        var title = new JLabel("Inserisci il nome e i tag per la ricerca.");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(title, BorderLayout.NORTH);
 
-        JPanel searchPanel = new JPanel(new FlowLayout());
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchPanel.add(new JLabel("Nome dell'alimento: "));
         JTextField search = new JTextField(TEXTFIELD_MIN_WIDTH);
         searchPanel.add(search);
 
         panel.add(searchPanel, BorderLayout.CENTER);
 
-        panel.add(selezionaTagMultipli(tag, "Cerca alimenti",
+        panel.add(selezionaTagMultipli(tag, Optional.empty(), "Cerca alimenti visibili con i tag e il nome selezionati",
                 t -> accettore.accept(
                         Pair.of(Utilities.notBlank(search.getText()), new HashSet<>(t)))),
                 BorderLayout.SOUTH);
@@ -511,11 +439,10 @@ public final class View {
     }
 
     private JComponent editorValoriCibo(Optional<Alimento> attuale, Consumer<ValoriCibo> accettore,
-            String buttonLabel, boolean modificabile) {
+            String buttonLabel) {
         var panel = new JPanel(new BorderLayout());
         var checkbox = new JCheckBox("Privato");
         checkbox.setSelected(attuale.map(alimento -> alimento.privato()).orElse(false));
-        checkbox.setEnabled(modificabile);
         panel.add(checkbox, BorderLayout.NORTH);
         panel.add(Components.genericQuery(
                 List.of("Nome", "Kcal", "Proteine", "Grassi", "Carboidrati", "Porzione", "Brand"),
@@ -539,7 +466,7 @@ public final class View {
                         displayErrorMessage("Inserisci dei valori nutrizionali corretti.", () -> {
                         });
                     }
-                }, modificabile), BorderLayout.CENTER);
+                }), BorderLayout.CENTER);
         return panel;
     }
 
@@ -583,7 +510,7 @@ public final class View {
                         displayErrorMessage("Errore nei dati inseriti: " + e.getMessage());
                     }
 
-                }, true);
+                });
         panel.add(query, BorderLayout.CENTER);
         attuale.ifPresent(consumazione -> panel
                 .add(Components.button("Elimina", () -> getController().utenteEliminaConsumazione(consumazione)),
@@ -592,23 +519,62 @@ public final class View {
     }
 
     private JComponent editorValoriRicetta(Optional<ValoriRicetta> attuale, Consumer<ValoriRicetta> accettore,
-            boolean modificabile) {
+            String buttonLabel) {
         var panel = new JPanel(new BorderLayout());
         var checkbox = new JCheckBox("Privato");
         checkbox.setSelected(attuale.map(v -> v.privata()).orElse(false));
-        checkbox.setEnabled(modificabile);
         panel.add(checkbox, BorderLayout.NORTH);
         panel.add(Components.genericQuery(List.of("Nome", "Porzione"),
                 List.of(attuale.map(v -> v.nome()),
                         attuale.map((ValoriRicetta v) -> Components.descrizioneOptional(v.porzione()))),
-                "Aggiungi",
+                buttonLabel,
                 l -> {
                     try {
-                        accettore.accept(new ValoriRicetta(l.get(0), Optional.of(Integer.parseInt(l.get(2))), false));
+                        accettore.accept(new ValoriRicetta(l.get(0), Optional.of(Integer.parseInt(l.get(1))), false));
                     } catch (NumberFormatException e) {
                         accettore.accept(new ValoriRicetta(l.get(0), Optional.empty(), checkbox.isSelected()));
                     }
-                }, modificabile), BorderLayout.CENTER);
+                }), BorderLayout.CENTER);
         return panel;
     }
+
+    private JComponent dettaglioAlimento(Alimento a, boolean modificabile) {
+        var panel = new JPanel(new BorderLayout());
+        panel.add(Components.keyValueTable(
+                List.of(
+                        Utilities.stringPair("Codice alimento", a.codAlimento()),
+                        Utilities.stringPair("Nome", a.nome()),
+                        Utilities.stringPair("Kcal per 100g", a.kcal()),
+                        Utilities.stringPair("Proteine per 100g", a.proteine()),
+                        Utilities.stringPair("Grassi per 100g", a.grassi()),
+                        Utilities.stringPair("Porzione di riferimento", Components.descrizioneOptional(a.porzione())),
+                        Utilities.stringPair("Brand", Components.descrizioneOptional(a.brand())),
+                        Utilities.stringPair("Proprietario", modificabile ? "tu" : "altro utente"),
+                        Utilities.stringPair("Privato", a.privato()))),
+                BorderLayout.CENTER);
+        List<Pair<String, Runnable>> buttons = new ArrayList<>();
+        if (a.tipo() == 'R') {
+            buttons.add(Pair.of("Ingredienti", () -> getController().utenteRichiedeIngredienti(a)));
+        }
+        if (modificabile) {
+            buttons.add(Pair.of("Modifica valori", () -> {
+                if (a.tipo() == 'R') {
+                    freshPane(cp -> cp.add(
+                            editorValoriRicetta(Optional.of(new ValoriRicetta(a.nome(), a.porzione(), a.privato())),
+                                    v -> getController().utenteModificaValoriRicetta(a, v), "Modifica")));
+                } else {
+                    freshPane(cp -> cp.add(
+                            editorValoriCibo(Optional.of(a),
+                                    v -> getController().utenteModificaValoriCibo(a, v), "Modifica")));
+                }
+            }));
+            var buttonPanel = new JPanel(new GridLayout(1, buttons.size()));
+            buttons.forEach(b -> buttonPanel.add(Components.button(b.getLeft(), b.getRight())));
+            if (!buttons.isEmpty()) {
+                panel.add(buttonPanel, BorderLayout.SOUTH);
+            }
+        }
+        return panel;
+    }
+
 }

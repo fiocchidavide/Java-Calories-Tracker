@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 public class Utilities {
     public static Optional<Integer> strictlyPositive(int x) {
         return Optional.ofNullable(x > 0 ? x : null);
@@ -36,5 +38,8 @@ public class Utilities {
     }
     public static <T> Optional<Set<T>> notEmpty(Set<T> l){
         return Optional.ofNullable(l.isEmpty() ? null : l);
+    }
+    public static Pair<String,String> stringPair(Object left, Object right){
+        return Pair.of(String.valueOf(left), String.valueOf(right));
     }        
 }

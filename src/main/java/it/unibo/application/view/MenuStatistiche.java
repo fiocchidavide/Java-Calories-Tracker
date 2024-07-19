@@ -16,25 +16,25 @@ public class MenuStatistiche extends MenuElement {
 
     private JMenuItem valoriGiorno() {
         JMenuItem m = new JMenuItem("Nutrienti assunti");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleVisualizzareValoriGiorno());
         return m;
     }
 
     private JMenuItem valoriMedia() {
         JMenuItem m = new JMenuItem("Nutrienti assunti medi");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleVisualizzareValoriMedi());
         return m;
     }
 
     private JMenuItem variazionePeso() {
         JMenuItem m = new JMenuItem("Variazione peso corporeo");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleVisualizzareDifferenzaDiPeso());
         return m;
     }
 
     private JMenuItem stimaTdee() {
         JMenuItem m = new JMenuItem("Stima TDEE");
-        m.addActionListener(a -> {});
+        m.addActionListener(a -> getController().utenteVuoleVisualizzareTdee());
         return m;
     }
 }

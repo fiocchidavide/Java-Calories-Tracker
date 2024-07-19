@@ -11,6 +11,7 @@ public class MenuTag extends MenuElement {
         this.add(aggiungiTag());
         this.add(visualizzaTag());
         this.add(tagUtente());
+        this.add(tagAlimenti());
     }
 
     private JMenuItem aggiungiTag() {
@@ -28,6 +29,12 @@ public class MenuTag extends MenuElement {
     private JMenuItem tagUtente() {
         JMenuItem m = new JMenuItem("I tuoi tag");
         m.addActionListener(a -> getController().utenteRichiedeSuoiTag());
+        return m;
+    }
+
+    private JMenuItem tagAlimenti() {
+        JMenuItem m = new JMenuItem("Gestisci tag alimenti");
+        m.addActionListener(a -> getController().utenteVuoleModificareAssociazioni());
         return m;
     }
 }
