@@ -11,12 +11,14 @@ public class App {
     public static String TITLE = "MyCalorieTracker";
 
     public static void main(String[] args) {
-        final Connection connection = ConnectionManager.getConnection();
+        final Connection connection = args.length == 2 ? ConnectionManager.getConnection(args[0], args[1])
+                : ConnectionManager.getConnection("root", "");
         var model = new Model(connection);
         var view = new View(() -> {
             try {
                 connection.close();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         });
         var controller = new Controller(model, view);
         view.setController(controller);
