@@ -79,6 +79,7 @@ public final class View {
                         System.exit(0);
                     }
                 });
+        frame.setLocationRelativeTo(null);
 
         return frame;
     }
@@ -250,7 +251,8 @@ public final class View {
                             Utilities.stringPair("Kcal", valori.kcal()),
                             Utilities.stringPair("Proteine", valori.proteine()),
                             Utilities.stringPair("Grassi", valori.grassi()),
-                            Utilities.stringPair("Carboidrati", valori.carboidrati()))),BorderLayout.CENTER);
+                            Utilities.stringPair("Carboidrati", valori.carboidrati()))),
+                    BorderLayout.CENTER);
             cp.add(new JLabel(label), BorderLayout.NORTH);
         });
     }
@@ -326,15 +328,18 @@ public final class View {
         freshPane(cp -> cp.add(dettaglioAlimento(a, modificabile)));
     }
 
-    public void visualizzaConsumazioni(List<Consumazione> consumazioni, Consumer<Consumazione> onDoubleClick) {
+    public void visualizzaConsumazioni(List<Consumazione> consumazioni,
+            List<Pair<String, Consumer<Consumazione>>> pulsanti) {
         var columns = List.of("Numero", "Data", "Ora", "CodAlimento", "Quantità");
-        freshPane(cp -> cp.add(Components.clickableObjectsTable(consumazioni,
+        freshPane(cp -> cp.add(Components.singleObjectMultiButtonSelector(consumazioni,
                 columns,
-                "Data",
                 consumazione -> Utilities.mapFromLists(columns,
                         Utilities.stringList(consumazione.numero(), consumazione.data(), consumazione.ora(),
                                 consumazione.codAlimento(), consumazione.quantità())),
-                onDoubleClick)));
+                "Data",
+                pulsanti.stream().map(p -> Pair.<String, Consumer<Optional<Consumazione>>>of(p.getLeft(), opt -> {
+                    opt.ifPresent(c -> p.getRight().accept(c));
+                })).toList())));
     }
 
     public void richiediConsumazione(int codAlimento, Consumer<Consumazione> accettore) {

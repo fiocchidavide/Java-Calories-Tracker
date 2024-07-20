@@ -56,7 +56,7 @@ public class Controller {
     public void utenteRichiedeRegistrazione(String username, char[] password) {
         if (model.registerUser(username, password)) {
             view.displayMessage("Utente registrato, procedere al login.");
-        }else {
+        } else {
             view.displayErrorMessage("Lo username esiste già.");
         }
     }
@@ -314,8 +314,12 @@ public class Controller {
 
     public void utenteRichiedeConsumazioni() {
         view.visualizzaConsumazioni(model.leggiConsumazioni(utenteAttuale()),
-                consumazione -> view.modificaConsumazione(consumazione,
-                        this::utenteModificaConsumazione));
+                List.of(Pair.of("Modifica o elimina", consumazione -> view.modificaConsumazione(consumazione,
+                        this::utenteModificaConsumazione)),
+                        Pair.of("Visualizza valori",
+                                consumazione -> view.visualizzaValori(
+                                        "Valori nutrizionali assunti con la consumazione " + consumazione.numero(),
+                                        model.calcolaValoriConsumazione(consumazione)))));
     }
 
     public void utenteModificaConsumazione(Consumazione nuovaConsumazione) {

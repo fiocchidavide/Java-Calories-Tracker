@@ -914,4 +914,25 @@ public class Model {
             throw new RuntimeException(e);
         }
     }
+
+    public Valori calcolaValoriConsumazione(Consumazione consumazione) {
+        final String CALCOLA_VALORI = """
+                SELECT (a.Kcal * c.Quantita / 100) AS Calorie,
+                    (a.Carboidrati * c.Quantita / 100) AS Carboidrati,
+                    (a.Grassi * c.Quantita / 100) AS Grassi,
+                    (a.Proteine * c.Quantita / 100) AS Proteine
+                FROM CONSUMAZIONE c
+                JOIN ALIMENTO a ON c.CodAlimento = a.CodAlimento
+                WHERE c.Username = ? AND c.Numero = ?
+                """;
+        try (PreparedStatement s = connection.prepareStatement(CALCOLA_VALORI)) {
+            s.setString(1, consumazione.username());
+            s.setInt(2, consumazione.numero());
+            var res = s.executeQuery();
+            res.next();
+            return new Valori(res.getInt(1), res.getInt(2), res.getInt(3), res.getInt(4));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
