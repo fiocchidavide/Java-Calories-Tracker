@@ -574,6 +574,9 @@ public final class View {
                                     v -> getController().utenteModificaValoriCibo(a, v), "Modifica")));
                 }
             }));
+            buttons.add(Pair.of("Elimina", () -> {
+                getController().utenteEliminaAlimento(a);
+            }));
             var buttonPanel = new JPanel(new GridLayout(1, buttons.size()));
             buttons.forEach(b -> buttonPanel.add(Components.button(b.getLeft(), b.getRight())));
             if (!buttons.isEmpty()) {
