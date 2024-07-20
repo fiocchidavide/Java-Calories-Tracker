@@ -382,16 +382,21 @@ public class Model {
             b.append(
                     """
                             WITH ALIMENTI_VALIDI AS (
-                            SELECT DISTINCT CodAlimento
-                            FROM ASSOCIAZIONE
-                            WHERE ParolaChiave IN (
+                                SELECT DISTINCT CodAlimento
+                                FROM ASSOCIAZIONE
+                                WHERE ParolaChiave IN (
                             """);
             b.append("?,".repeat(tags.get().size() - 1));
-            b.append("?))");
+            b.append(
+                    """
+                                ?)
+                                GROUP BY CodAlimento
+                                HAVING COUNT(DISTINCT ParolaChiave) =
+                            """ + tags.get().size() + ")");
         }, () -> b.append("""
-                WITH ALIMENTI_VALIDI AS
-                (SELECT DISTINCT CodAlimento
-                FROM ALIMENTO)
+                    WITH ALIMENTI_VALIDI AS
+                    (SELECT DISTINCT CodAlimento
+                    FROM ALIMENTO)
                 """));
 
         b.append(
@@ -614,7 +619,7 @@ public class Model {
                 inserisciRicetta.setString(1, ricetta.ricetta().nome());
                 inserisciRicetta.setObject(2, ricetta.ricetta().porzione().orElse(null));
                 inserisciRicetta.setObject(3, ricetta.username());
-                inserisciRicetta.setObject(4, ricetta.ricetta().privata());
+                inserisciRicetta.setObject(4, ricetta.ricetta().privato());
                 if (inserisciRicetta.executeUpdate() != 1) {
                     throw new SQLException("Errore durante l'aggiunta dei valori temporanei della ricetta.");
                 }
@@ -698,9 +703,9 @@ public class Model {
                 WHERE CodAlimento = ?
                 """;
         try (PreparedStatement s = connection.prepareStatement(MODIFICA_VALORI)) {
-            s.setString(1, ricetta.nome());
-            s.setObject(2, ricetta.porzione().orElse(null));
-            s.setBoolean(3, ricetta.privato());
+            s.setString(1, nuoviValori.nome());
+            s.setObject(2, nuoviValori.porzione().orElse(null));
+            s.setBoolean(3, nuoviValori.privato());
             s.setInt(4, ricetta.codAlimento());
             return s.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -919,9 +924,9 @@ public class Model {
     public Valori calcolaValoriConsumazione(Consumazione consumazione) {
         final String CALCOLA_VALORI = """
                 SELECT (a.Kcal * c.Quantita / 100) AS Calorie,
-                    (a.Carboidrati * c.Quantita / 100) AS Carboidrati,
+                    (a.Proteine * c.Quantita / 100) AS Proteine,
                     (a.Grassi * c.Quantita / 100) AS Grassi,
-                    (a.Proteine * c.Quantita / 100) AS Proteine
+                    (a.Carboidrati * c.Quantita / 100) AS Carboidrati
                 FROM CONSUMAZIONE c
                 JOIN ALIMENTO a ON c.CodAlimento = a.CodAlimento
                 WHERE c.Username = ? AND c.Numero = ?

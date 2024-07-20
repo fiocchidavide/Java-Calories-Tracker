@@ -136,7 +136,7 @@ public class Controller {
     }
 
     public void utenteRichiedeSuoiTag() {
-        view.richiediTagSingolo(model.leggiTag(),
+        view.richiediTagSingolo(model.leggiTagUtente(utenteAttuale()),
                 List.of(Pair.of("Elimina", opt -> opt.ifPresent(this::utenteEliminaTag))));
     }
 

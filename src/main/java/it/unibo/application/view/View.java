@@ -527,7 +527,7 @@ public final class View {
             String buttonLabel) {
         var panel = new JPanel(new BorderLayout());
         var checkbox = new JCheckBox("Privato");
-        checkbox.setSelected(attuale.map(v -> v.privata()).orElse(false));
+        checkbox.setSelected(attuale.map(v -> v.privato()).orElse(false));
         panel.add(checkbox, BorderLayout.NORTH);
         panel.add(Components.genericQuery(List.of("Nome", "Porzione"),
                 List.of(attuale.map(v -> v.nome()),
@@ -552,6 +552,7 @@ public final class View {
                         Utilities.stringPair("Kcal per 100g", a.kcal()),
                         Utilities.stringPair("Proteine per 100g", a.proteine()),
                         Utilities.stringPair("Grassi per 100g", a.grassi()),
+                        Utilities.stringPair("Carboidrati per 100g", a.carboidrati()),
                         Utilities.stringPair("Porzione di riferimento", Components.descrizioneOptional(a.porzione())),
                         Utilities.stringPair("Brand", Components.descrizioneOptional(a.brand())),
                         Utilities.stringPair("Proprietario", modificabile ? "tu" : "altro utente"),
