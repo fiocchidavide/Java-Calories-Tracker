@@ -44,7 +44,7 @@ public class Model {
             s.setString(2, String.valueOf(password));
             return s.executeQuery().next();
         } catch (Exception e) {
-            System.out.println(e);
+            System.err.println(e);
             return false;
         }
     }
@@ -783,7 +783,6 @@ public class Model {
                 var daAggiungere = new HashSet<>(nuovi.keySet());
                 daAggiungere.removeAll(attuali.keySet());
                 for (var ingrediente : daAggiungere) {
-                    System.out.println("Aggiungo " + nuovi.get(ingrediente) + "grammi di\n" + ingrediente);
                     inserisciComponente.setInt(1, ricetta.codAlimento());
                     inserisciComponente.setInt(2, ingrediente.codAlimento());
                     inserisciComponente.setInt(3, nuovi.get(ingrediente));
@@ -797,7 +796,6 @@ public class Model {
                 var daModificare = new HashSet<>(nuovi.keySet());
                 daModificare.retainAll(attuali.keySet());
                 for (var ingrediente : daModificare) {
-                    System.out.println("Imposto " + nuovi.get(ingrediente) + "grammi di\n" + ingrediente);
                     modificaComponente.setInt(1, nuovi.get(ingrediente));
                     modificaComponente.setInt(2, ricetta.codAlimento());
                     modificaComponente.setInt(3, ingrediente.codAlimento());
@@ -810,7 +808,6 @@ public class Model {
                 var daEliminare = new HashSet<>(attuali.keySet());
                 daEliminare.removeAll(nuovi.keySet());
                 for (var ingrediente : daEliminare) {
-                    System.out.println("Rimuovo\n" + ingrediente);
                     rimuoviComponente.setInt(1, ricetta.codAlimento());
                     rimuoviComponente.setInt(2, ingrediente.codAlimento());
                     rimuoviComponente.addBatch();
