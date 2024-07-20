@@ -701,6 +701,7 @@ public class Model {
             s.setString(1, ricetta.nome());
             s.setObject(2, ricetta.porzione().orElse(null));
             s.setBoolean(3, ricetta.privato());
+            s.setInt(4, ricetta.codAlimento());
             return s.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println(e);
