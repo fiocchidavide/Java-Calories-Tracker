@@ -1,4 +1,3 @@
-# Sample Gradle Project
+# Un semplice calorie tracker scritto in Java
 
-This is a repository that can be used as a base to develop an OOP project.
-The tools seen in the lab are pre-integrated in the build file.
+Realizzato per l'esame di "Basi di dati" dell'anno scolastico 2023/2024.
